@@ -8,6 +8,7 @@
 # Large data files — never push to GitHub
 *.nc
 *.shp
+*.html
 
 # Preprocessed rasters and outputs
 
