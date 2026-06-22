@@ -7,10 +7,12 @@
 
 # Large data files — never push to GitHub
 *.nc
+*.shp
 
 # Preprocessed rasters and outputs
-preprocessed/
-temp/
+
+**preprocessed/
+**temp/
 
 # R session artifacts
 .Rhistory
