@@ -14,6 +14,7 @@
 
 **preprocessed/
 **temp/
+**Data_geo/ipbes_regions_subregions/
 
 # R session artifacts
 .Rhistory
