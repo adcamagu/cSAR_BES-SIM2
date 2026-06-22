@@ -1,0 +1,81 @@
+# category_map.yaml
+# Canonical configuration for the BES-SIM 2 cSAR pipeline.
+# Maps model-native land-use entities to the six PREDICTS/GLOBIO classes
+# and declares which EBVcube metric to consume per model.
+
+version: "1.0"
+last_updated: "2026-06-19"
+
+# -----------------------------------------------------------------------------
+# Paths (relative to the notebook in ../analyses/)
+# -----------------------------------------------------------------------------
+paths:
+  data_root: "../Data_geo"
+
+# -----------------------------------------------------------------------------
+# Target schema: the six classes used by the cSAR affinity matrix
+# -----------------------------------------------------------------------------
+target_classes:
+  - Primary_vegetation
+  - Secondary_vegetation
+  - Cropland
+  - Pasture
+  - Urban
+  - Permanent_crops
+
+# -----------------------------------------------------------------------------
+# Per-model contracts
+# Each block declares:
+#   file            - NetCDF path relative to paths$data_root
+#   metric_filter   - which EBVcube metric(s) to consume (null = all)
+#   entities        - entity -> target class mapping (~ = exclude from denominator)
+#   notes           - methodological decisions worth recording
+# -----------------------------------------------------------------------------
+models:
+
+  PLUM:
+    file: "land_use/PLUM/cubes/alexander_ecostr_id102_20260320.nc"
+    metric_filter:
+      path_pattern: "metric_3/ebv_cube$"
+    entities:
+      Cropland: "Cropland"
+      Pasture: "Pasture"
+      TimberForest: "Secondary_vegetation"
+      CarbonForest: "Secondary_vegetation"
+      UnmanagedForest: "Primary_vegetation"
+      OtherNatural: "Primary_vegetation"
+      Photovoltaics: "Urban"
+      Agrivoltaics: "Cropland"
+      Barren: "Primary_vegetation"
+      Urban: "Urban"
+    notes:
+      - "PLUM Cropland aggregates annual + permanent crops; Permanent_crops unresolved."
+      - "Photovoltaics (utility-scale PV) vs Agrivoltaics (dual-use) disambiguated by PLUM."
+      - "Barren excluded from habitat-area denominator (NA-mapped)."
+      - "Scenarios: NfN, NfNl, NaC, NfS, BAU. Timesteps: 2020, 2030, 2050, 2070."
+
+  GLOBIO:
+    file: "land_use/GLOBIO/cubes/alkemade_ecostr_id103_20260216.nc"
+    metric_filter: ~
+    entities:
+      Urban: "Urban"
+      Cropland: "Cropland"
+      Potential_secondary_vegetation: "Secondary_vegetation"
+      Agroforestry: "Permanent_crops"
+      Pasture: "Pasture"
+      Rangeland: "Pasture"
+      Forestry: "Secondary_vegetation"
+      Secondary_vegetation: "Secondary_vegetation"
+      Unmanaged_forest: "Primary_vegetation"
+      Shrubland_Grassland: "Primary_vegetation"
+      Other: "Primary_vegetation"
+      Bare_Areas: "Primary_vegetation"
+    notes:
+      - "GLOBIO carries a single metric per scenario; no filter needed."
+
+  ScenMIP:
+    file: "land_use/ScenMIP7-LUH3/cubes/chini_ecostr_id105_20260325.nc"
+    metric_filter: ~
+    entities: {}
+    notes:
+      - "Populate entity list once LUH3 state names are confirmed from the cube."

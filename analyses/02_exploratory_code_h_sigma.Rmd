@@ -1,0 +1,56 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+# intro
+
+This notebook contains a few lines of code to explore the data tables on the supplementary materials provided by Martins et al (2022) (unpublished). These files where send by Henrique Pereira to Andrés Marmol and Lilly Schwietzer by email on the 26 of May 2026.
+
+The raw files are found in the following path '/Users/andresmarmolguijarro/Documents/idiv/BES-SIM 2 local/cSAR-iDiv r-package/calibration tables'
+
+# code
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+setwd('/Users/andresmarmolguijarro/Documents/idiv/BES-SIM 2 local/cSAR-iDiv r-package/calibration tables')
+```
+
+```{r}
+generalist <- read.csv('/Users/andresmarmolguijarro/Documents/idiv/BES-SIM 2 local/cSAR-iDiv r-package/calibration tables/generalist_sp_sigma_list.csv')
+```
+
+```{r}
+names(generalist)
+```
+
+```{r}
+#estimating z-value
+generalist$z <- (log(1 - generalist$sigma)/log(generalist$h))
+
+sum_gen <- generalist %>%
+  group_by(New_LU2) %>%
+  summarise(mean_sigma_LU = mean(sigma), mean_h_LU = mean(h))
+```
+
+```{r}
+forest <- read.csv('forest_sp_sigma_list.csv')
+```
+
+```{r}
+names(forest)
+```
+
+```{r}
+#estimating z-value
+forest$z <- (log(1 - forest$sigma)/log(forest$h))
+
+sum_for <- forest %>%
+  group_by(New_LU2) %>%
+  summarise(mean_sigma_LU = mean(sigma), mean_h_LU = mean(h))
+```
+
+It is key to know that all z-values used where 0.2 as a useful average applicable to the cSAR based on Storch et al (2012)

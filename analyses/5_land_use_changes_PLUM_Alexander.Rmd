@@ -1,0 +1,350 @@
+---
+title: "4_land_use_changes — PLUM Alexander (id99, HILDA+ entities, p05 GeoTIFFs)"
+output: html_notebook
+---
+
+```{r setup, message=FALSE}
+library(terra)
+library(tidyterra)
+library(tidyverse)
+library(ggplot2)
+library(stringr)
+library(sf)
+library(rnaturalearth)
+
+if (requireNamespace("rstudioapi", quietly = TRUE) &&
+    rstudioapi::isAvailable()) {
+  setwd(dirname(rstudioapi::getSourceEditorContext()$path))
+}
+```
+
+# 0. Configuration
+
+Unlike the model-agnostic notebook, PLUM Alexander (id99) is read
+directly from the aggregated 0.5° GeoTIFFs produced by the coarsening
+notebook (`...PLUM-Alexander__coarsen-to-0.5deg...Rmd`), not from an
+EBVcube NetCDF. This is because the native cube is binary (0/1) at
+0.01° and the coarsened proportional-cover TIFFs are the correct input
+for the cSAR pipeline.
+
+The entity → target class mapping mirrors the YAML contract used by
+`4_land_use_changes_agnostic_3.Rmd` for the other models.
+
+```{r config}
+model_label <- "PLUM_Alexander"
+
+# Root of the aggregated 0.5° GeoTIFFs
+tif_root <- "../preprocessed/PLUM_alexander/0.5deg"
+
+scenarios <- c("NfN", "NfNl", "NaC", "NfS", "BAU")
+years     <- c(2020, 2030, 2050, 2070)
+n_entities <- 7
+
+# Entity names in the exact order stored in the cube / output by the
+# coarsening notebook (entity_01 ... entity_07)
+entity_names <- c(
+  "Urban",
+  "Cropland",
+  "Pasture",
+  "Forest managed",
+  "Forest unmanaged",
+  "Grass/shrubland",
+  "Other land"
+)
+
+# Safe names for list keys (spaces and slashes → underscore)
+safe_entity_names <- gsub("[[:space:]/]+", "_", entity_names)
+
+# Entity → target class mapping (matches YAML logic for other models)
+# NA = excluded from habitat-area denominator
+category_map <- c(
+  Urban              = "Urban",
+  Cropland           = "Cropland",
+  Pasture            = "Pasture",
+  Forest_managed     = "Secondary_vegetation",
+  Forest_unmanaged   = "Primary_vegetation",
+  Grass_shrubland    = "Primary_vegetation",
+  Other_land         = "Primary_vegetation"
+)
+
+# No NA-mapped entities for PLUM Alexander — all 7 contribute
+category_map_active <- category_map[!is.na(category_map)]
+new_categories      <- unique(category_map_active)
+
+cat("Model:         ", model_label, "\n")
+cat("Scenarios:     ", paste(scenarios, collapse = ", "), "\n")
+cat("Years:         ", paste(years, collapse = ", "), "\n")
+cat("Target classes:", paste(new_categories, collapse = ", "), "\n")
+```
+
+# 1. Paths and spatial template
+
+The 0.5° global template is derived from the first available GeoTIFF
+so that `cellSize()` uses the correct extent and resolution — identical
+to the approach used in the agnostic notebook via `cube_props@spatial`.
+
+```{r paths}
+stopifnot(dir.exists(tif_root))
+
+# IPBES regions shapefile — same discovery logic as agnostic notebook
+ipbes_shp <- list.files("../Data_geo", pattern = "\\.shp$",
+                         full.names = TRUE, ignore.case = TRUE,
+                         recursive  = TRUE)
+ipbesred <- vect(ipbes_shp[1])
+
+# Spatial template from the first available p05 TIFF
+template_tif <- file.path(tif_root, scenarios[1],
+                           years[1], "entity_01_p05.tif")
+stopifnot(file.exists(template_tif))
+r_template <- rast(template_tif)
+
+# Pixel-area raster (latitude-varying), built once — matches agnostic notebook
+pixel_area_km2 <- cellSize(r_template, unit = "km")
+
+cat("Spatial template:\n")
+print(r_template)
+```
+
+# 2. Helper: read all entities for one scenario and two timesteps
+
+Mirrors the `ebv_read()` loop in section 4.1 of the agnostic notebook,
+but reads from p05 GeoTIFFs instead of an EBVcube NetCDF. Each entity
+is read once and stored in `lu_frac` — reused for both the
+percentage-point and km² calculations below.
+
+```{r read-helper}
+read_lu_frac <- function(scenario, t0, t1) {
+  lu_frac <- vector("list", n_entities)
+  names(lu_frac) <- safe_entity_names
+
+  for (e in seq_len(n_entities)) {
+    tif_t0 <- file.path(tif_root, scenario, t0,
+                        sprintf("entity_%02d_p05.tif", e))
+    tif_t1 <- file.path(tif_root, scenario, t1,
+                        sprintf("entity_%02d_p05.tif", e))
+
+    stopifnot(file.exists(tif_t0), file.exists(tif_t1))
+
+    r <- c(rast(tif_t0), rast(tif_t1))
+    names(r) <- paste0(safe_entity_names[e], "_", c(t0, t1))
+
+    lu_frac[[safe_entity_names[e]]] <- r
+    cat(sprintf("[%d/%d] %s\n", e, n_entities, entity_names[e]))
+  }
+
+  lu_frac
+}
+```
+
+# 3. Select scenario and timesteps
+
+Change `scenario_choice`, `t0_label`, and `t1_label` to switch
+scenarios or time windows — mirrors the `scenario_choice` / `t0_label`
+/ `t1_label` pattern in the agnostic notebook.
+
+```{r scenario-select}
+scenario_choice <- "NfS"   # one of: NfN, NfNl, NaC, NfS, BAU
+t0_label        <- "2020"
+t1_label        <- "2050"
+
+stopifnot(scenario_choice %in% scenarios)
+stopifnot(t0_label %in% as.character(years))
+stopifnot(t1_label %in% as.character(years))
+
+cat("Processing scenario:", scenario_choice, "\n")
+cat("Baseline (t0):      ", t0_label, "\n")
+cat("Target  (t1):       ", t1_label, "\n")
+```
+
+# 4. Changes in area
+
+## 4.1 Read fractions and compute percentage-point change per decade
+
+```{r fractions}
+lu_frac <- read_lu_frac(scenario_choice, t0_label, t1_label)
+
+cat("Done.", model_label, "-", n_entities, "entities x 2 timesteps.\n")
+
+# Recategorise: sum fractions across entities sharing a target class
+lu_frac_recat <- lapply(new_categories, function(new_cat) {
+  old_entities  <- names(category_map_active)[category_map_active == new_cat]
+  summed        <- Reduce(`+`, lu_frac[old_entities])
+  names(summed) <- paste0(new_cat, "_", c(t0_label, t1_label))
+  summed
+}) |> setNames(new_categories)
+
+cat("Recategorised into", length(new_categories), "classes:\n")
+print(new_categories)
+
+# Percentage-point change per decade
+n_decades <- (as.numeric(t1_label) - as.numeric(t0_label)) / 10
+
+lu_pct_change_per_decade <- lapply(names(lu_frac_recat), function(lu) {
+  r  <- lu_frac_recat[[lu]]
+  y0 <- r[[paste0(lu, "_", t0_label)]]
+  y1 <- r[[paste0(lu, "_", t1_label)]]
+  change_per_decade <- (y1 - y0) / n_decades
+  names(change_per_decade) <-
+    paste0(lu, "_pctchange_per_decade_", t0_label, "_", t1_label)
+  change_per_decade
+}) |> setNames(names(lu_frac_recat))
+
+cat("Percentage-point change per decade computed for", model_label, ":\n")
+print(names(lu_pct_change_per_decade))
+
+plot(lu_pct_change_per_decade$Primary_vegetation,
+     main = paste(model_label, "- Primary_vegetation pct change/decade"))
+```
+
+```{r pct-change-stack}
+pct_change_stack <- rast(lu_pct_change_per_decade)
+plot(pct_change_stack, main = paste(model_label, names(pct_change_stack)))
+```
+
+## 4.2 Changes in km²
+
+Fractions are converted to km² using the latitude-varying pixel-area
+raster built in section 1 — no second read of the TIFFs, identical to
+the agnostic notebook.
+
+```{r km2}
+lu_area_km2 <- lapply(lu_frac, function(r) r * pixel_area_km2)
+names(lu_area_km2) <- names(lu_frac)
+
+cat("Converted to km² for", model_label, "-", length(lu_area_km2), "entities.\n")
+
+# Recategorise km²
+lu_area_km2_recat <- lapply(new_categories, function(new_cat) {
+  old_entities  <- names(category_map_active)[category_map_active == new_cat]
+  summed        <- Reduce(`+`, lu_area_km2[old_entities])
+  names(summed) <- paste0(new_cat, "_", c(t0_label, t1_label))
+  summed
+}) |> setNames(new_categories)
+
+cat("Reclassified into", length(new_categories), "categories for",
+    model_label, ":\n")
+print(new_categories)
+```
+
+```{r km2-plot}
+lu_area_stack <- rast(lu_area_km2_recat)
+plot(lu_area_stack, main = paste(model_label, names(lu_area_stack)))
+
+# Primary_vegetation: t0, t1, and difference
+pv_t0   <- lu_area_km2_recat$Primary_vegetation[[paste0("Primary_vegetation_", t0_label)]]
+pv_t1   <- lu_area_km2_recat$Primary_vegetation[[paste0("Primary_vegetation_", t1_label)]]
+pv_diff <- pv_t1 - pv_t0
+names(pv_diff) <- paste0("Primary_vegetation_diff_", t0_label, "_", t1_label)
+
+pv_compare <- c(pv_t0, pv_t1, pv_diff)
+plot(pv_compare, main = paste(model_label, "-", names(pv_compare)))
+```
+
+# 5. Plots
+
+## 5.1 Map: percentage-point change per decade (continuous and binned)
+
+```{r maps}
+coastline <- ne_coastline(scale = "medium", returnclass = "sf")
+coastline <- st_make_valid(coastline)
+
+pv_pct_change <- lu_pct_change_per_decade$Primary_vegetation
+pv_df <- as.data.frame(pv_pct_change, xy = TRUE, na.rm = TRUE)
+names(pv_df)[3] <- "pct_change"
+
+# Alternative A: continuous scale
+ggplot(pv_df) +
+  geom_tile(aes(x = x, y = y, fill = pct_change)) +
+  geom_sf(data = coastline, color = "grey30", linewidth = 0.1, inherit.aes = FALSE) +
+  scale_fill_distiller(
+    palette   = "Reds",
+    direction = -1,
+    limits    = c(min(pv_df$pct_change, na.rm = TRUE), 0),
+    oob       = scales::squish,
+    na.value  = NA,
+    name      = "pp / decade"
+  ) +
+  coord_sf(expand = FALSE, xlim = c(-180, 180), ylim = c(-90, 90)) +
+  labs(title = paste0(model_label, " — Δ Primary_vegetation ", t0_label, "–", t1_label)) +
+  theme_void() +
+  theme(
+    legend.position   = "bottom",
+    legend.key.width  = unit(2, "cm"),
+    legend.key.height = unit(0.3, "cm")
+  )
+
+# Alternative B: binned scale
+breaks_b   <- c(min(pv_df$pct_change, na.rm = TRUE),
+                -3.08, -1.16, -0.32, -0.30, -0.2, -0.1, -0.05, -0.01, 0)
+reds_colors <- rev(RColorBrewer::brewer.pal(9, "Reds"))
+reds_colors[length(reds_colors)] <- "#FFF7BC"
+
+ggplot(pv_df) +
+  geom_tile(aes(x = x, y = y, fill = pct_change)) +
+  geom_sf(data = coastline, color = "grey30", linewidth = 0.1, inherit.aes = FALSE) +
+  scale_fill_stepsn(
+    colors   = reds_colors,
+    breaks   = breaks_b,
+    labels   = round(sort(breaks_b), 2),
+    na.value = NA,
+    name     = "percentage points per decade"
+  ) +
+  coord_sf(expand = FALSE, xlim = c(-180, 180), ylim = c(-90, 90)) +
+  labs(title = paste0(model_label, " — Δ ", t0_label, "–", t1_label)) +
+  theme_void() +
+  theme(
+    legend.position   = "bottom",
+    legend.key.width  = unit(1.4, "cm"),
+    legend.key.height = unit(0.3, "cm")
+  )
+```
+
+```{r binned-diagnostic}
+breaks_b <- c(min(pv_df$pct_change, na.rm = TRUE),
+              -3.08, -1.16, -0.32, -0.30, -0.2, -0.1, -0.05, -0.01, 0)
+table(cut(pv_df$pct_change, breaks = sort(unique(breaks_b))))
+```
+
+## 5.2 Fraction of natural land in baseline year (t0)
+
+```{r natural-land-distribution}
+pv_pct_2020 <- lu_frac_recat$Primary_vegetation[[paste0("Primary_vegetation_", t0_label)]] * 100
+names(pv_pct_2020) <- paste0("Primary_vegetation_pct_", t0_label)
+
+pv_pct_df <- as.data.frame(pv_pct_2020, xy = TRUE, na.rm = TRUE)
+names(pv_pct_df)[3] <- "pct"
+
+probs_dist  <- c(0, 0.05, 0.15, 0.3, 0.45, 0.55, 0.7, 0.85, 0.95, 1)
+breaks_dist <- unname(quantile(pv_pct_df$pct, probs = probs_dist, na.rm = TRUE))
+
+print(table(cut(pv_pct_df$pct, breaks = sort(unique(breaks_dist)))))
+
+brbg_colors <- RColorBrewer::brewer.pal(length(unique(breaks_dist)) - 1, "BrBG")
+
+ggplot(pv_pct_df) +
+  geom_tile(aes(x = x, y = y, fill = pct)) +
+  geom_sf(data = coastline, color = "grey30", linewidth = 0.1, inherit.aes = FALSE) +
+  scale_fill_stepsn(
+    colors   = brbg_colors,
+    breaks   = breaks_dist,
+    labels   = round(breaks_dist, 1),
+    limits   = c(0, 100),
+    na.value = NA,
+    name     = paste0("distribution of land in ", t0_label, " (%)")
+  ) +
+  coord_sf(expand = FALSE, xlim = c(-180, 180), ylim = c(-90, 90)) +
+  labs(title = paste0(model_label, " — ", t0_label)) +
+  theme_void() +
+  theme(
+    legend.position    = "bottom",
+    legend.key.width   = unit(1.4, "cm"),
+    legend.key.height  = unit(0.3, "cm"),
+    plot.title         = element_text(size = 14, face = "bold", hjust = 0)
+  )
+```
+
+```{r quantile-diagnostic}
+breaks_dist <- unname(quantile(pv_pct_df$pct, probs = probs_dist, na.rm = TRUE))
+breaks_dist
+table(cut(pv_pct_df$pct, breaks = sort(unique(breaks_dist))))
+```

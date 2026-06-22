@@ -1,0 +1,316 @@
+---
+title: "4_land_use_changes"
+output: html_notebook
+---
+
+```{r setup, message=FALSE}
+library(ebvcube)
+library(tidyterra)
+library(terra)
+library(tidyverse)
+library(graticule)
+library(sf)
+library(rworldmap)
+library(ggplot2)
+library(stringr)
+
+#setting the working directory
+setwd(dirname(rstudioapi::getSourceEditorContext()$path))
+```
+
+# 0. Model selection
+
+This notebook is written to work with any of the three land-use models (GLOBIO, PLUM, ScenMIP) by changing a single variable, `model_key`, below. Everything downstream — cube path, metadata, object names used for caching/printing, and the category map — follows automatically from this one choice.
+
+```{r model-select}
+# Set this to one of: "globio_lu_05", "plum_lu_05", "scenmip_0.25"
+model_key <- "plum_lu_05"
+
+# Short label used in printed messages and plot titles
+model_label <- switch(
+  model_key,
+  globio_lu_05 = "GLOBIO",
+  plum_lu_05   = "PLUM",
+  `scenmip_0.25` = "ScenMIP",
+  stop("Unrecognised model_key: ", model_key)
+)
+
+cat("Active model:", model_label, "(", model_key, ")\n")
+```
+
+# 1. Paths
+
+Here we call the EBVcube file for the selected model. For the purpose of this exploratory analysis I need to simplify the ipbes vector file, so that it runs faster. To provide a fast analysis, I have set a tolerance parameter of `0.05` meaning that within a 0.05 degree grid, every vertice would be flattened into a single straight line. Given that the rasters we are working with are 0.5, this does not create any practical problem.
+
+```{r}
+root_LU_cubes <- "../Data_geo/"
+
+# EBVcube NetCDFs — one entry per model; model_key selects which is active
+dc <- list(
+  globio_lu_05 = "../Data_geo/land_use/GLOBIO/cubes/alkemade_ecostr_id103_20260216.nc",
+  plum_lu_05   = "../Data_geo/land_use/PLUM/cubes/alexander_ecostr_id102_20260320.nc",
+  scenmip_0.25 = "../Data_geo/land_use/ScenMIP7-LUH3/cubes/chini_ecostr_id105_20260325.nc"
+)
+
+# IPBES regions shapefile — used in regional aggregation (next step)
+ipbes_shp <- list.files(root_LU_cubes, pattern = "\\.shp$",
+                        full.names = TRUE, ignore.case = TRUE, recursive = TRUE)
+ipbes_shp
+
+#Downscaling the IPBES shape file directly from the original file
+#ipbes <- vect(ipbes_shp)
+#ipbesred <- simplifyGeom(ipbes, tolerance = 0.05, preserveTopology = TRUE)
+#writeVector(ipbesred, "../Data_geo/ipbes_regions_subregions/ipbes_reduced.shp")
+
+# calling the reduced shape (time saver)
+ipbesred <- vect(ipbes_shp[1])
+plot(ipbesred)
+```
+
+# 2. Cube metadata
+
+```{r cube-metadata}
+cube_path  <- dc[[model_key]]
+
+cube_props <- ebv_properties(cube_path, verbose = FALSE)
+cube_paths <- ebv_datacubepaths(cube_path, verbose = FALSE)
+
+# Available scenarios: NfN [1,1] | NaC [2,1] | NfS [3,1] | BAU [4,1]
+# (row labels may differ by model — check cube_paths for the active model)
+print(cube_paths)
+
+cat("Model:     ", model_label, "\n")
+cat("Entities:\n");   print(cube_props@general$entity_names)
+cat("Timesteps:\n");  print(cube_props@temporal$dates)
+cat("EPSG:      ",    cube_props@spatial$epsg,       "\n")
+cat("Resolution:",    cube_props@spatial$resolution, "\n")
+cat("Extent:    ",    cube_props@spatial$extent,     "\n")
+```
+
+# 3. Category map for the active model
+
+Original entity names differ between models, so each model gets its own mapping from original land-use classes to the 6 recategorised classes used downstream (`Urban`, `Cropland`, `Secondary_vegetation`, `Permanent_crops`, `Pasture`, `Primary_vegetation`).
+
+```{r category-map}
+category_map_globio <- c(
+  Urban                           = "Urban",
+  Cropland                        = "Cropland",
+  Potential_secondary_vegetation  = "Secondary_vegetation",
+  Agroforestry                    = "Permanent_crops",
+  Pasture                         = "Pasture",
+  Rangeland                       = "Pasture",
+  Forestry                        = "Secondary_vegetation",
+  Secondary_vegetation            = "Secondary_vegetation",
+  Unmanaged_forest                = "Primary_vegetation",
+  Shrubland_Grassland             = "Primary_vegetation",
+  Other                           = "Primary_vegetation",
+  Bare_Areas                      = "Primary_vegetation"
+)
+
+# Fill these in with the correct mapping once available
+category_map_plum <- c(
+  # original_entity_name = "Recategorised_class"
+  Cropland                        = "Cropland",
+  Pasture  	                      = "Pasture",
+  TimberForest	                  = "Secondary_vegetation",
+  CarbonForest	                  = "Secondary_vegetation",
+  UnmanagedForest	                = "Primary_vegetation",
+  OtherNatural	                  = "Primary_vegetation",
+  Photovoltaics	                  = "Urban",
+  Agrivoltaics                    = "Cropland",
+  Barren                          = "Primary_vegetaton",	
+  Urban                           = "Urban"
+)
+
+category_map_scenmip <- c(
+  # original_entity_name = "Recategorised_class"
+)
+
+category_map <- switch(
+  model_key,
+  globio_lu_05  = category_map_globio,
+  plum_lu_05    = category_map_plum,
+  `scenmip_0.25` = category_map_scenmip,
+  stop("No category_map defined for model_key: ", model_key)
+)
+
+if (length(category_map) == 0) {
+  warning("category_map for '", model_label, "' is empty — fill it in before running sections 4-5.")
+}
+
+category_map
+```
+
+# 4. Double checking changes in Area
+
+## 4.1 Changes in absolute relative percentages
+
+```{r}
+# Percentage-point change per decade, 2020 -> 2070, directly from fractions
+# Formula: ((y_t1 - y_t0) / (t1 - t0)) * 10
+# y = % of pixel covered by a land-use type, read directly from the EBVcube
+# (no conversion to km2 - these are fraction/percentage values throughout)
+
+# 1. Datacube path for the scenario
+
+dc_path <- cube_paths[1, 1]   # NfN (or model-equivalent) - change row index to switch scenario
+
+# 2. Read all original entities, both timesteps (2020 and 2070)
+
+entity_names      <- cube_props@general$entity_names
+safe_entity_names <- gsub("[[:space:]/]+", "_", entity_names)
+timestep_labels   <- format(as.Date(cube_props@temporal$dates), "%Y")
+n_entities        <- length(entity_names)
+
+t0_label <- "2020"
+t1_label <- "2070"
+
+t0_idx <- which(timestep_labels == t0_label)
+t1_idx <- which(timestep_labels == t1_label)
+
+lu_frac <- vector("list", n_entities)
+names(lu_frac) <- safe_entity_names
+
+for (e in seq_len(n_entities)) {
+
+  cat(sprintf("[%d/%d] %s\n", e, n_entities, entity_names[e]))
+
+  frac <- ebv_read(
+    filepath     = cube_path,
+    datacubepath = dc_path,
+    entity       = e,
+    timestep     = c(t0_idx, t1_idx),
+    ignore_RAM   = TRUE,
+    verbose      = FALSE
+  )
+
+  names(frac) <- paste0(safe_entity_names[e], "_", c(t0_label, t1_label))
+  lu_frac[[safe_entity_names[e]]] <- frac
+}
+
+cat("Done.", model_label, "-", n_entities, "entities x", length(c(t0_idx, t1_idx)), "timesteps.\n")
+
+# 3. Recategorise: sum fractions across entities sharing a new category
+
+stopifnot(all(names(lu_frac) %in% names(category_map)))
+
+new_categories <- unique(category_map)
+
+lu_frac_recat <- lapply(new_categories, function(new_cat) {
+  old_entities  <- names(category_map)[category_map == new_cat]
+  summed        <- Reduce(`+`, lu_frac[old_entities])
+  names(summed) <- paste0(new_cat, "_", c(t0_label, t1_label))
+  summed
+}) |> setNames(new_categories)
+
+cat("Recategorised into", length(new_categories), "classes:\n")
+print(new_categories)
+
+# 4. Percentage-point change per decade, per recategorised entity
+
+n_decades <- (as.numeric(t1_label) - as.numeric(t0_label)) / 10
+
+lu_pct_change_per_decade <- lapply(names(lu_frac_recat), function(lu) {
+
+  r  <- lu_frac_recat[[lu]]
+  y0 <- r[[paste0(lu, "_", t0_label)]]
+  y1 <- r[[paste0(lu, "_", t1_label)]]
+
+  change_per_decade <- ((y1 - y0) / n_decades)
+  names(change_per_decade) <- paste0(lu, "_pctchange_per_decade_", t0_label, "_", t1_label)
+  change_per_decade
+
+}) |> setNames(names(lu_frac_recat))
+
+cat("Percentage-point change per decade computed for", model_label, ":\n")
+print(names(lu_pct_change_per_decade))
+
+# Quick check
+plot(lu_pct_change_per_decade$Primary_vegetation, main = paste(model_label, "- Secondary_vegetation"))
+```
+
+```{r}
+pct_change_stack <- rast(lu_pct_change_per_decade)
+plot(pct_change_stack, main = paste(model_label, names(pct_change_stack)))
+```
+
+## 4.2 Changes in km2
+
+```{r}
+dc_path <- cube_paths[1, 1]
+
+# Pixel-area raster - latitude-varying, built once
+pixel_area_km2 <- cellSize(
+  rast(extent = ext(-180, 180, -90, 90), resolution = 0.5, crs = "EPSG:4326"),
+  unit = "km"
+)
+
+# Metadata for the loop
+entity_names        <- cube_props@general$entity_names
+safe_entity_names   <- gsub("[[:space:]/]+", "_", entity_names)
+timestep_labels_all <- format(as.Date(cube_props@temporal$dates), "%Y")
+n_entities          <- length(entity_names)
+
+# Restrict to 2020 and 2070 only
+t0_label <- "2020"
+t1_label <- "2070"
+keep_idx <- which(timestep_labels_all %in% c(t0_label, t1_label))
+timestep_labels <- timestep_labels_all[keep_idx]
+n_timesteps     <- length(timestep_labels)
+
+# Loop: read only 2020 & 2070 per entity, convert fraction -> km2, name layers
+lu_area_km2 <- vector("list", n_entities)
+names(lu_area_km2) <- safe_entity_names
+
+for (e in seq_len(n_entities)) {
+
+  cat(sprintf("[%d/%d] %s\n", e, n_entities, entity_names[e]))
+
+  frac <- ebv_read(
+    filepath     = cube_path,
+    datacubepath = dc_path,
+    entity       = e,
+    timestep     = keep_idx,
+    ignore_RAM   = TRUE,
+    verbose      = FALSE
+  )
+
+  area        <- frac * pixel_area_km2
+  names(area) <- paste0(safe_entity_names[e], "_", timestep_labels)
+
+  lu_area_km2[[safe_entity_names[e]]] <- area
+}
+
+cat("Done.", model_label, "-", n_entities, "entities x", n_timesteps, "timesteps.\n")
+```
+
+```{r}
+stopifnot(all(names(lu_area_km2) %in% names(category_map)))
+```
+
+Applying these changes to all other rasters
+
+```{r}
+new_categories <- unique(category_map)
+
+lu_area_km2_recat <- lapply(new_categories, function(new_cat) {
+  old_entities <- names(category_map)[category_map == new_cat]
+  # Sum the corresponding rasters (same layer structure: 2 timesteps each - 2020 & 2070)
+  rasters_to_sum <- lu_area_km2[old_entities]
+  summed <- Reduce(`+`, rasters_to_sum)
+  names(summed) <- paste0(new_cat, "_", timestep_labels)
+  summed
+})
+
+names(lu_area_km2_recat) <- new_categories
+
+cat("Reclassified into", length(new_categories), "categories for", model_label, ":\n")
+print(new_categories)
+```
+
+```{r}
+lu_area_stack <- rast(lu_area_km2_recat)
+plot(lu_area_stack, main = paste(model_label, names(lu_area_stack)))
+
+plot(lu_area_km2_recat$Primary_vegetation, main = paste(model_label, "- Primary_vegetation"))
+```

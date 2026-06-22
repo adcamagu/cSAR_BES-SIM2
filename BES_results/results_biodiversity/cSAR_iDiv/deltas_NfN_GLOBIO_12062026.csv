@@ -1,0 +1,418 @@
+"","zone","entity","zone_type","year_comparison","area_0","area_1","delta_area"
+"1","Global","Urban","Global","2020_2030",1212318.45772333,1401823.98365598,189505.525932654
+"2","Global","Urban","Global","2020_2050",1212318.45772333,1734465.13913116,522146.681407834
+"3","Global","Urban","Global","2020_2070",1212318.45772333,1813760.56605591,601442.108332585
+"4","Africa","Urban","Region","2020_2030",75201.4498245873,103693.967768402,28492.5179438148
+"5","Africa","Urban","Region","2020_2050",75201.4498245873,167748.665371584,92547.2155469967
+"6","Africa","Urban","Region","2020_2070",75201.4498245873,202004.768007333,126803.318182746
+"7","Americas","Urban","Region","2020_2030",331430.127620937,378697.858951475,47267.7313305381
+"8","Americas","Urban","Region","2020_2050",331430.127620937,452236.832035284,120806.704414347
+"9","Americas","Urban","Region","2020_2070",331430.127620937,477583.683212173,146153.555591235
+"10","Antarctica","Urban","Region","2020_2030",0,0,0
+"11","Antarctica","Urban","Region","2020_2050",0,0,0
+"12","Antarctica","Urban","Region","2020_2070",0,0,0
+"13","Asia and the Pacific","Urban","Region","2020_2030",219877.100642208,269104.916646707,49227.8160044994
+"14","Asia and the Pacific","Urban","Region","2020_2050",219877.100642208,348331.009827612,128453.909185404
+"15","Asia and the Pacific","Urban","Region","2020_2070",219877.100642208,345272.880182316,125395.779540108
+"16","Europe and Central Asia","Urban","Region","2020_2030",174816.687473467,194692.890532007,19876.2030585392
+"17","Europe and Central Asia","Urban","Region","2020_2050",174816.687473467,223416.179379731,48599.4919062638
+"18","Europe and Central Asia","Urban","Region","2020_2070",174816.687473467,223233.080003028,48416.39252956
+"19","Africa","Cropland","Region","2020_2030",3005227.04880833,3764524.28752541,759297.238717071
+"20","Africa","Cropland","Region","2020_2050",3005227.04880833,5037847.87818632,2032620.82937798
+"21","Africa","Cropland","Region","2020_2070",3005227.04880833,5296324.77488145,2291097.72607312
+"22","Americas","Cropland","Region","2020_2030",4213027.702148,4502551.20638971,289523.504241709
+"23","Americas","Cropland","Region","2020_2050",4213027.702148,4213758.47139604,730.769248040393
+"24","Americas","Cropland","Region","2020_2070",4213027.702148,4124026.80919887,-89000.892949136
+"25","Antarctica","Cropland","Region","2020_2030",0,0,0
+"26","Antarctica","Cropland","Region","2020_2050",0,0,0
+"27","Antarctica","Cropland","Region","2020_2070",0,0,0
+"28","Asia and the Pacific","Cropland","Region","2020_2030",5767191.06000068,6132657.72290222,365466.662901539
+"29","Asia and the Pacific","Cropland","Region","2020_2050",5767191.06000068,5899179.34894257,131988.288941897
+"30","Asia and the Pacific","Cropland","Region","2020_2070",5767191.06000068,5877798.41700166,110607.357000988
+"31","Europe and Central Asia","Cropland","Region","2020_2030",3638309.8994132,3805489.55140055,167179.651987354
+"32","Europe and Central Asia","Cropland","Region","2020_2050",3638309.8994132,3521153.53988318,-117156.35953002
+"33","Europe and Central Asia","Cropland","Region","2020_2070",3638309.8994132,3492786.68843084,-145523.210982355
+"34","Africa","Secondary_vegetation","Region","2020_2030",1984905.63706619,3083594.74533346,1098689.10826727
+"35","Africa","Secondary_vegetation","Region","2020_2050",1984905.63706619,3765579.0772586,1780673.44019242
+"36","Africa","Secondary_vegetation","Region","2020_2070",1984905.63706619,3657677.86817447,1672772.23110829
+"37","Americas","Secondary_vegetation","Region","2020_2030",3867305.48745467,7013282.92783703,3145977.44038236
+"38","Americas","Secondary_vegetation","Region","2020_2050",3867305.48745467,11017277.7169923,7149972.22953767
+"39","Americas","Secondary_vegetation","Region","2020_2070",3867305.48745467,11148490.434523,7281184.94706832
+"40","Antarctica","Secondary_vegetation","Region","2020_2030",0,0,0
+"41","Antarctica","Secondary_vegetation","Region","2020_2050",0,0,0
+"42","Antarctica","Secondary_vegetation","Region","2020_2070",0,0,0
+"43","Asia and the Pacific","Secondary_vegetation","Region","2020_2030",3528545.5739558,5921354.07433563,2392808.50037983
+"44","Asia and the Pacific","Secondary_vegetation","Region","2020_2050",3528545.5739558,7373946.80174427,3845401.22778847
+"45","Asia and the Pacific","Secondary_vegetation","Region","2020_2070",3528545.5739558,7783919.89635693,4255374.32240113
+"46","Europe and Central Asia","Secondary_vegetation","Region","2020_2030",3739656.29159606,5376034.88860038,1636378.59700432
+"47","Europe and Central Asia","Secondary_vegetation","Region","2020_2050",3739656.29159606,7457334.4423034,3717678.15070735
+"48","Europe and Central Asia","Secondary_vegetation","Region","2020_2070",3739656.29159606,7643873.31809279,3904217.02649674
+"49","Africa","Permanent_crops","Region","2020_2030",0,0,0
+"50","Africa","Permanent_crops","Region","2020_2050",0,0,0
+"51","Africa","Permanent_crops","Region","2020_2070",0,0,0
+"52","Americas","Permanent_crops","Region","2020_2030",0,0,0
+"53","Americas","Permanent_crops","Region","2020_2050",0,0,0
+"54","Americas","Permanent_crops","Region","2020_2070",0,0,0
+"55","Antarctica","Permanent_crops","Region","2020_2030",0,0,0
+"56","Antarctica","Permanent_crops","Region","2020_2050",0,0,0
+"57","Antarctica","Permanent_crops","Region","2020_2070",0,0,0
+"58","Asia and the Pacific","Permanent_crops","Region","2020_2030",0,0,0
+"59","Asia and the Pacific","Permanent_crops","Region","2020_2050",0,0,0
+"60","Asia and the Pacific","Permanent_crops","Region","2020_2070",0,0,0
+"61","Europe and Central Asia","Permanent_crops","Region","2020_2030",0,0,0
+"62","Europe and Central Asia","Permanent_crops","Region","2020_2050",0,0,0
+"63","Europe and Central Asia","Permanent_crops","Region","2020_2070",0,0,0
+"64","Africa","Pasture","Region","2020_2030",8636218.53356893,7734840.67317717,-901377.860391759
+"65","Africa","Pasture","Region","2020_2050",8636218.53356893,5954677.50719017,-2681541.02637876
+"66","Africa","Pasture","Region","2020_2070",8636218.53356893,5816467.37395149,-2819751.15961744
+"67","Americas","Pasture","Region","2020_2030",8464164.73800452,6882265.02815918,-1581899.70984534
+"68","Americas","Pasture","Region","2020_2050",8464164.73800452,4657627.00366778,-3806537.73433674
+"69","Americas","Pasture","Region","2020_2070",8464164.73800452,5049716.98038691,-3414447.75761761
+"70","Antarctica","Pasture","Region","2020_2030",0,0,0
+"71","Antarctica","Pasture","Region","2020_2050",0,0,0
+"72","Antarctica","Pasture","Region","2020_2070",0,0,0
+"73","Asia and the Pacific","Pasture","Region","2020_2030",11359795.6261545,10970740.6322475,-389054.993906993
+"74","Asia and the Pacific","Pasture","Region","2020_2050",11359795.6261545,9982174.64066656,-1377620.98548795
+"75","Asia and the Pacific","Pasture","Region","2020_2070",11359795.6261545,9778228.28344793,-1581567.34270659
+"76","Europe and Central Asia","Pasture","Region","2020_2030",4639484.54125118,4008505.35401137,-630979.187239813
+"77","Europe and Central Asia","Pasture","Region","2020_2050",4639484.54125118,3173889.9436734,-1465594.59757778
+"78","Europe and Central Asia","Pasture","Region","2020_2070",4639484.54125118,3368316.40952407,-1271168.13172712
+"79","Africa","Primary_vegetation","Region","2020_2030",16157140.9158906,15172039.9080245,-985101.007866114
+"80","Africa","Primary_vegetation","Region","2020_2050",16157140.9158906,14932840.4550385,-1224300.46085212
+"81","Africa","Primary_vegetation","Region","2020_2070",16157140.9158906,14886218.8007909,-1270922.11509967
+"82","Americas","Primary_vegetation","Region","2020_2030",23592904.155641,21692035.1913894,-1900868.96425168
+"83","Americas","Primary_vegetation","Region","2020_2050",23592904.155641,20127932.1821633,-3464971.97347774
+"84","Americas","Primary_vegetation","Region","2020_2070",23592904.155641,19669014.302333,-3923889.85330799
+"85","Antarctica","Primary_vegetation","Region","2020_2030",1519.04416943512,1519.04416943512,0
+"86","Antarctica","Primary_vegetation","Region","2020_2050",1519.04416943512,1519.04416943512,0
+"87","Antarctica","Primary_vegetation","Region","2020_2070",1519.04416943512,1519.04416943512,0
+"88","Asia and the Pacific","Primary_vegetation","Region","2020_2030",13829031.3362543,11410583.3541243,-2418447.98213004
+"89","Asia and the Pacific","Primary_vegetation","Region","2020_2050",13829031.3362543,11100808.903275,-2728222.43297934
+"90","Asia and the Pacific","Primary_vegetation","Region","2020_2070",13829031.3362543,10919221.2232669,-2909810.1129874
+"91","Europe and Central Asia","Primary_vegetation","Region","2020_2030",15629256.8462515,14439020.544984,-1190236.30126748
+"92","Europe and Central Asia","Primary_vegetation","Region","2020_2050",15629256.8462515,13447949.1229538,-2181307.72329768
+"93","Europe and Central Asia","Primary_vegetation","Region","2020_2070",15629256.8462515,13095533.7380937,-2533723.10815781
+"94","Antarctica","Urban","Sub_Region","2020_2030",0,0,0
+"95","Antarctica","Urban","Sub_Region","2020_2050",0,0,0
+"96","Antarctica","Urban","Sub_Region","2020_2070",0,0,0
+"97","Caribbean","Urban","Sub_Region","2020_2030",7253.26436053912,8601.38744669124,1348.12308615212
+"98","Caribbean","Urban","Sub_Region","2020_2050",7253.26436053912,10709.5148672627,3456.25050672357
+"99","Caribbean","Urban","Sub_Region","2020_2070",7253.26436053912,11106.0137113034,3852.74935076425
+"100","Central Africa","Urban","Sub_Region","2020_2030",6592.7466149499,10157.5036899661,3564.75707501624
+"101","Central Africa","Urban","Sub_Region","2020_2050",6592.7466149499,17092.0243170902,10499.2777021403
+"102","Central Africa","Urban","Sub_Region","2020_2070",6592.7466149499,21287.9407325012,14695.1941175513
+"103","Central Asia","Urban","Sub_Region","2020_2030",9754.24428582673,12907.4457426462,3153.20145681944
+"104","Central Asia","Urban","Sub_Region","2020_2050",9754.24428582673,18778.4416734575,9024.19738763081
+"105","Central Asia","Urban","Sub_Region","2020_2070",9754.24428582673,18927.7333350556,9173.48904922892
+"106","Central and Western Europe","Urban","Sub_Region","2020_2030",130199.964224349,145356.538784383,15156.574560034
+"107","Central and Western Europe","Urban","Sub_Region","2020_2050",130199.964224349,168557.701710931,38357.7374865823
+"108","Central and Western Europe","Urban","Sub_Region","2020_2070",130199.964224349,173344.248470216,43144.2842458678
+"109","East Africa and adjacent islands","Urban","Sub_Region","2020_2030",10613.7261662809,16860.586186247,6246.86001996608
+"110","East Africa and adjacent islands","Urban","Sub_Region","2020_2050",10613.7261662809,31881.2159173853,21267.4897511044
+"111","East Africa and adjacent islands","Urban","Sub_Region","2020_2070",10613.7261662809,40028.4495030737,29414.7233367928
+"112","Eastern Europe","Urban","Sub_Region","2020_2030",34862.4789632923,36428.9060049783,1566.42704168599
+"113","Eastern Europe","Urban","Sub_Region","2020_2050",34862.4789632923,36080.0359953428,1217.55703205054
+"114","Eastern Europe","Urban","Sub_Region","2020_2070",34862.4789632923,30961.0981977554,-3901.38076553693
+"115","Mesoamerica","Urban","Sub_Region","2020_2030",20207.9990234436,23609.2468306936,3401.24780725006
+"116","Mesoamerica","Urban","Sub_Region","2020_2050",20207.9990234436,28185.5830679475,7977.58404450393
+"117","Mesoamerica","Urban","Sub_Region","2020_2070",20207.9990234436,27680.3532299561,7472.35420651256
+"118","North Africa","Urban","Sub_Region","2020_2030",19466.2252728997,24457.6007961853,4991.37552328556
+"119","North Africa","Urban","Sub_Region","2020_2050",19466.2252728997,34381.2461006012,14915.0208277015
+"120","North Africa","Urban","Sub_Region","2020_2070",19466.2252728997,36412.0003677615,16945.7750948618
+"121","North America","Urban","Sub_Region","2020_2030",244961.294831706,279571.423609193,34610.1287774868
+"122","North America","Urban","Sub_Region","2020_2050",244961.294831706,338835.796364958,93874.5015332518
+"123","North America","Urban","Sub_Region","2020_2070",244961.294831706,366943.930914261,121982.636082555
+"124","North-East Asia","Urban","Sub_Region","2020_2030",93123.8080949167,106775.409493513,13651.6013985964
+"125","North-East Asia","Urban","Sub_Region","2020_2050",93123.8080949167,118638.296096056,25514.4880011394
+"126","North-East Asia","Urban","Sub_Region","2020_2070",93123.8080949167,104256.669309729,11132.8612148127
+"127","Oceania","Urban","Sub_Region","2020_2030",22429.7105818539,25775.0994622502,3345.38888039625
+"128","Oceania","Urban","Sub_Region","2020_2050",22429.7105818539,31279.9361787238,8850.22559686991
+"129","Oceania","Urban","Sub_Region","2020_2070",22429.7105818539,33202.3545172748,10772.6439354209
+"130","South America","Urban","Sub_Region","2020_2030",59007.5694052493,66915.801064898,7908.2316596487
+"131","South America","Urban","Sub_Region","2020_2050",59007.5694052493,74505.9377351179,15498.3683298687
+"132","South America","Urban","Sub_Region","2020_2070",59007.5694052493,71853.3853566533,12845.815951404
+"133","South Asia","Urban","Sub_Region","2020_2030",48995.7168352147,67199.3687406125,18203.6519053978
+"134","South Asia","Urban","Sub_Region","2020_2050",48995.7168352147,101169.551930351,52173.8350951363
+"135","South Asia","Urban","Sub_Region","2020_2070",48995.7168352147,104950.882068851,55955.1652336359
+"136","South-East Asia","Urban","Sub_Region","2020_2030",35449.7122145355,45344.5021918411,9894.78997730563
+"137","South-East Asia","Urban","Sub_Region","2020_2050",35449.7122145355,65271.3833775825,29821.671163047
+"138","South-East Asia","Urban","Sub_Region","2020_2070",35449.7122145355,68452.2034040627,33002.4911895272
+"139","Southern Africa","Urban","Sub_Region","2020_2030",16206.1384741271,21345.2991897684,5139.16071564135
+"140","Southern Africa","Urban","Sub_Region","2020_2050",16206.1384741271,32838.9307809067,16632.7923067796
+"141","Southern Africa","Urban","Sub_Region","2020_2070",16206.1384741271,41101.728598906,24895.5901247789
+"142","West Africa","Urban","Sub_Region","2020_2030",22322.6132963296,30872.9779062351,8550.36460990554
+"143","West Africa","Urban","Sub_Region","2020_2050",22322.6132963296,51555.2482556009,29232.6349592714
+"144","West Africa","Urban","Sub_Region","2020_2070",22322.6132963296,63174.6488050912,40852.0355087616
+"145","Western Asia","Urban","Sub_Region","2020_2030",19878.1529156872,24010.5367584897,4132.38384280252
+"146","Western Asia","Urban","Sub_Region","2020_2050",19878.1529156872,31971.8422448993,12093.6893292122
+"147","Western Asia","Urban","Sub_Region","2020_2070",19878.1529156872,34410.7708823985,14532.6179667113
+"148","Antarctica","Cropland","Sub_Region","2020_2030",0,0,0
+"149","Antarctica","Cropland","Sub_Region","2020_2050",0,0,0
+"150","Antarctica","Cropland","Sub_Region","2020_2070",0,0,0
+"151","Caribbean","Cropland","Sub_Region","2020_2030",72975.5935616443,67051.9959537933,-5923.59760785097
+"152","Caribbean","Cropland","Sub_Region","2020_2050",72975.5935616443,65854.1318193286,-7121.46174231573
+"153","Caribbean","Cropland","Sub_Region","2020_2070",72975.5935616443,65731.2616176215,-7244.33194402279
+"154","Central Africa","Cropland","Sub_Region","2020_2030",300094.420812916,417075.688018672,116981.267205756
+"155","Central Africa","Cropland","Sub_Region","2020_2050",300094.420812916,548845.561594403,248751.140781486
+"156","Central Africa","Cropland","Sub_Region","2020_2070",300094.420812916,579966.666221716,279872.2454088
+"157","Central Asia","Cropland","Sub_Region","2020_2030",384509.175536954,449655.2261255,65146.0505885455
+"158","Central Asia","Cropland","Sub_Region","2020_2050",384509.175536954,419465.673310364,34956.4977734093
+"159","Central Asia","Cropland","Sub_Region","2020_2070",384509.175536954,407638.416341029,23129.2408040744
+"160","Central and Western Europe","Cropland","Sub_Region","2020_2030",1525147.7486994,1647120.75171831,121973.003018905
+"161","Central and Western Europe","Cropland","Sub_Region","2020_2050",1525147.7486994,1455716.41887846,-69431.3298209379
+"162","Central and Western Europe","Cropland","Sub_Region","2020_2070",1525147.7486994,1454768.93498332,-70378.8137160852
+"163","East Africa and adjacent islands","Cropland","Sub_Region","2020_2030",646235.018311547,805867.2849027,159632.266591153
+"164","East Africa and adjacent islands","Cropland","Sub_Region","2020_2050",646235.018311547,1219086.09028132,572851.071969775
+"165","East Africa and adjacent islands","Cropland","Sub_Region","2020_2070",646235.018311547,1147120.10913668,500885.090825129
+"166","Eastern Europe","Cropland","Sub_Region","2020_2030",1728652.97517683,1708713.57355675,-19939.4016200746
+"167","Eastern Europe","Cropland","Sub_Region","2020_2050",1728652.97517683,1645971.44769436,-82681.5274824651
+"168","Eastern Europe","Cropland","Sub_Region","2020_2070",1728652.97517683,1630379.3371065,-98273.6380703291
+"169","Mesoamerica","Cropland","Sub_Region","2020_2030",343041.331496618,393701.013418106,50659.6819214878
+"170","Mesoamerica","Cropland","Sub_Region","2020_2050",343041.331496618,405211.092281776,62169.760785158
+"171","Mesoamerica","Cropland","Sub_Region","2020_2070",343041.331496618,405945.073035102,62903.7415384835
+"172","North Africa","Cropland","Sub_Region","2020_2030",595528.362532349,699961.361686843,104432.999154494
+"173","North Africa","Cropland","Sub_Region","2020_2050",595528.362532349,837033.843142436,241505.480610087
+"174","North Africa","Cropland","Sub_Region","2020_2070",595528.362532349,839464.374940129,243936.01240778
+"175","North America","Cropland","Sub_Region","2020_2030",2109758.57309843,2269376.11384013,159617.540741693
+"176","North America","Cropland","Sub_Region","2020_2050",2109758.57309843,2159909.96837936,50151.3952809218
+"177","North America","Cropland","Sub_Region","2020_2070",2109758.57309843,2076338.80441307,-33419.7686853639
+"178","North-East Asia","Cropland","Sub_Region","2020_2030",1408483.45356268,1486046.912202,77563.4586393246
+"179","North-East Asia","Cropland","Sub_Region","2020_2050",1408483.45356268,1369166.09271021,-39317.3608524723
+"180","North-East Asia","Cropland","Sub_Region","2020_2070",1408483.45356268,1327129.34680714,-81354.106755536
+"181","Oceania","Cropland","Sub_Region","2020_2030",518912.885020448,557942.502106073,39029.6170856252
+"182","Oceania","Cropland","Sub_Region","2020_2050",518912.885020448,644931.788826944,126018.903806496
+"183","Oceania","Cropland","Sub_Region","2020_2070",518912.885020448,612600.882265637,93687.997245189
+"184","South America","Cropland","Sub_Region","2020_2030",1687252.2039913,1772422.08317769,85169.8791863828
+"185","South America","Cropland","Sub_Region","2020_2050",1687252.2039913,1582783.27891558,-104468.925075722
+"186","South America","Cropland","Sub_Region","2020_2070",1687252.2039913,1576011.67013307,-111240.533858236
+"187","South Asia","Cropland","Sub_Region","2020_2030",2475889.9198133,2617523.66401417,141633.744200873
+"188","South Asia","Cropland","Sub_Region","2020_2050",2475889.9198133,2490364.18081843,14474.2610051376
+"189","South Asia","Cropland","Sub_Region","2020_2070",2475889.9198133,2533932.26373607,58042.3439227785
+"190","South-East Asia","Cropland","Sub_Region","2020_2030",1216864.85406864,1304527.55127144,87662.6972027987
+"191","South-East Asia","Cropland","Sub_Region","2020_2050",1216864.85406864,1233675.00140599,16810.1473373424
+"192","South-East Asia","Cropland","Sub_Region","2020_2070",1216864.85406864,1225696.90587727,8832.05180862383
+"193","Southern Africa","Cropland","Sub_Region","2020_2030",379814.999466095,597956.548875485,218141.549409391
+"194","Southern Africa","Cropland","Sub_Region","2020_2050",379814.999466095,1044449.4864565,664634.486990408
+"195","Southern Africa","Cropland","Sub_Region","2020_2070",379814.999466095,1195255.28649389,815440.287027799
+"196","West Africa","Cropland","Sub_Region","2020_2030",1083554.24768543,1243663.40404172,160109.156356297
+"197","West Africa","Cropland","Sub_Region","2020_2050",1083554.24768543,1388432.89671162,304878.6490262
+"198","West Africa","Cropland","Sub_Region","2020_2070",1083554.24768543,1534518.33808903,450964.090403604
+"199","Western Asia","Cropland","Sub_Region","2020_2030",147039.947535604,166617.093308523,19577.1457729189
+"200","Western Asia","Cropland","Sub_Region","2020_2050",147039.947535604,161042.285180977,14002.3376453731
+"201","Western Asia","Cropland","Sub_Region","2020_2070",147039.947535604,178439.018315538,31399.0707799339
+"202","Antarctica","Secondary_vegetation","Sub_Region","2020_2030",0,0,0
+"203","Antarctica","Secondary_vegetation","Sub_Region","2020_2050",0,0,0
+"204","Antarctica","Secondary_vegetation","Sub_Region","2020_2070",0,0,0
+"205","Caribbean","Secondary_vegetation","Sub_Region","2020_2030",15799.128971851,38856.0549495515,23056.9259777005
+"206","Caribbean","Secondary_vegetation","Sub_Region","2020_2050",15799.128971851,50516.8567733533,34717.7278015023
+"207","Caribbean","Secondary_vegetation","Sub_Region","2020_2070",15799.128971851,49489.490606513,33690.361634662
+"208","Central Africa","Secondary_vegetation","Sub_Region","2020_2030",722275.091564362,1114877.97994707,392602.888382711
+"209","Central Africa","Secondary_vegetation","Sub_Region","2020_2050",722275.091564362,1183939.44331582,461664.35175146
+"210","Central Africa","Secondary_vegetation","Sub_Region","2020_2070",722275.091564362,1132027.8636811,409752.772116737
+"211","Central Asia","Secondary_vegetation","Sub_Region","2020_2030",163536.193640002,321393.017794131,157856.824154129
+"212","Central Asia","Secondary_vegetation","Sub_Region","2020_2050",163536.193640002,482446.880829485,318910.687189483
+"213","Central Asia","Secondary_vegetation","Sub_Region","2020_2070",163536.193640002,334949.883601177,171413.689961175
+"214","Central and Western Europe","Secondary_vegetation","Sub_Region","2020_2030",1858325.72593165,2326532.40750192,468206.681570273
+"215","Central and Western Europe","Secondary_vegetation","Sub_Region","2020_2050",1858325.72593165,3218599.78916819,1360274.06323654
+"216","Central and Western Europe","Secondary_vegetation","Sub_Region","2020_2070",1858325.72593165,3365210.27689149,1506884.55095984
+"217","East Africa and adjacent islands","Secondary_vegetation","Sub_Region","2020_2030",402850.746799863,509556.098267378,106705.351467515
+"218","East Africa and adjacent islands","Secondary_vegetation","Sub_Region","2020_2050",402850.746799863,593961.246004202,191110.49920434
+"219","East Africa and adjacent islands","Secondary_vegetation","Sub_Region","2020_2070",402850.746799863,560939.988455425,158089.241655562
+"220","Eastern Europe","Secondary_vegetation","Sub_Region","2020_2030",1717794.37202441,2728109.46330432,1010315.09127991
+"221","Eastern Europe","Secondary_vegetation","Sub_Region","2020_2050",1717794.37202441,3756287.77230572,2038493.40028131
+"222","Eastern Europe","Secondary_vegetation","Sub_Region","2020_2070",1717794.37202441,3943713.15760013,2225918.78557573
+"223","Mesoamerica","Secondary_vegetation","Sub_Region","2020_2030",107871.097721673,248502.920546465,140631.822824792
+"224","Mesoamerica","Secondary_vegetation","Sub_Region","2020_2050",107871.097721673,446423.999187618,338552.901465945
+"225","Mesoamerica","Secondary_vegetation","Sub_Region","2020_2070",107871.097721673,448358.212321157,340487.114599484
+"226","North Africa","Secondary_vegetation","Sub_Region","2020_2030",104909.342275483,430336.026215533,325426.68394005
+"227","North Africa","Secondary_vegetation","Sub_Region","2020_2050",104909.342275483,496132.050078546,391222.707803063
+"228","North Africa","Secondary_vegetation","Sub_Region","2020_2070",104909.342275483,428980.203517147,324070.861241664
+"229","North America","Secondary_vegetation","Sub_Region","2020_2030",2079664.23635427,3852355.99163297,1772691.7552787
+"230","North America","Secondary_vegetation","Sub_Region","2020_2050",2079664.23635427,5919208.01140455,3839543.77505028
+"231","North America","Secondary_vegetation","Sub_Region","2020_2070",2079664.23635427,6430427.85063479,4350763.61428052
+"232","North-East Asia","Secondary_vegetation","Sub_Region","2020_2030",1189574.66009376,1943751.92145601,754177.261362246
+"233","North-East Asia","Secondary_vegetation","Sub_Region","2020_2050",1189574.66009376,2433717.2472611,1244142.58716734
+"234","North-East Asia","Secondary_vegetation","Sub_Region","2020_2070",1189574.66009376,2783626.62583075,1594051.96573698
+"235","Oceania","Secondary_vegetation","Sub_Region","2020_2030",831795.298742825,1475410.20994946,643614.911206634
+"236","Oceania","Secondary_vegetation","Sub_Region","2020_2050",831795.298742825,2003672.84840177,1171877.54965894
+"237","Oceania","Secondary_vegetation","Sub_Region","2020_2070",831795.298742825,2004535.05962946,1172739.76088664
+"238","South America","Secondary_vegetation","Sub_Region","2020_2030",1663971.02440686,2873567.96070805,1209596.93630118
+"239","South America","Secondary_vegetation","Sub_Region","2020_2050",1663971.02440686,4601128.84962678,2937157.82521992
+"240","South America","Secondary_vegetation","Sub_Region","2020_2070",1663971.02440686,4220214.88096052,2556243.85655366
+"241","South Asia","Secondary_vegetation","Sub_Region","2020_2030",809919.73352856,1306020.98831598,496101.254787421
+"242","South Asia","Secondary_vegetation","Sub_Region","2020_2050",809919.73352856,1443402.40401482,633482.670486259
+"243","South Asia","Secondary_vegetation","Sub_Region","2020_2070",809919.73352856,1412520.92665476,602601.193126195
+"244","South-East Asia","Secondary_vegetation","Sub_Region","2020_2030",680981.891970538,788487.40374316,107505.511772622
+"245","South-East Asia","Secondary_vegetation","Sub_Region","2020_2050",680981.891970538,1057942.96098869,376961.069018156
+"246","South-East Asia","Secondary_vegetation","Sub_Region","2020_2070",680981.891970538,1174319.46330958,493337.571339039
+"247","Southern Africa","Secondary_vegetation","Sub_Region","2020_2030",354239.553064381,588708.774820813,234469.221756431
+"248","Southern Africa","Secondary_vegetation","Sub_Region","2020_2050",354239.553064381,906146.245822397,551906.692758016
+"249","Southern Africa","Secondary_vegetation","Sub_Region","2020_2070",354239.553064381,1049784.76911724,695545.21605286
+"250","West Africa","Secondary_vegetation","Sub_Region","2020_2030",400630.903362096,440115.866082678,39484.9627205822
+"251","West Africa","Secondary_vegetation","Sub_Region","2020_2050",400630.903362096,585400.092037639,184769.188675543
+"252","West Africa","Secondary_vegetation","Sub_Region","2020_2070",400630.903362096,485945.043403558,85314.1400414626
+"253","Western Asia","Secondary_vegetation","Sub_Region","2020_2030",16273.9896201236,407683.550871026,391409.561250902
+"254","Western Asia","Secondary_vegetation","Sub_Region","2020_2050",16273.9896201236,435211.341077868,418937.351457745
+"255","Western Asia","Secondary_vegetation","Sub_Region","2020_2070",16273.9896201236,408917.820932424,392643.8313123
+"256","Antarctica","Permanent_crops","Sub_Region","2020_2030",0,0,0
+"257","Antarctica","Permanent_crops","Sub_Region","2020_2050",0,0,0
+"258","Antarctica","Permanent_crops","Sub_Region","2020_2070",0,0,0
+"259","Caribbean","Permanent_crops","Sub_Region","2020_2030",0,0,0
+"260","Caribbean","Permanent_crops","Sub_Region","2020_2050",0,0,0
+"261","Caribbean","Permanent_crops","Sub_Region","2020_2070",0,0,0
+"262","Central Africa","Permanent_crops","Sub_Region","2020_2030",0,0,0
+"263","Central Africa","Permanent_crops","Sub_Region","2020_2050",0,0,0
+"264","Central Africa","Permanent_crops","Sub_Region","2020_2070",0,0,0
+"265","Central Asia","Permanent_crops","Sub_Region","2020_2030",0,0,0
+"266","Central Asia","Permanent_crops","Sub_Region","2020_2050",0,0,0
+"267","Central Asia","Permanent_crops","Sub_Region","2020_2070",0,0,0
+"268","Central and Western Europe","Permanent_crops","Sub_Region","2020_2030",0,0,0
+"269","Central and Western Europe","Permanent_crops","Sub_Region","2020_2050",0,0,0
+"270","Central and Western Europe","Permanent_crops","Sub_Region","2020_2070",0,0,0
+"271","East Africa and adjacent islands","Permanent_crops","Sub_Region","2020_2030",0,0,0
+"272","East Africa and adjacent islands","Permanent_crops","Sub_Region","2020_2050",0,0,0
+"273","East Africa and adjacent islands","Permanent_crops","Sub_Region","2020_2070",0,0,0
+"274","Eastern Europe","Permanent_crops","Sub_Region","2020_2030",0,0,0
+"275","Eastern Europe","Permanent_crops","Sub_Region","2020_2050",0,0,0
+"276","Eastern Europe","Permanent_crops","Sub_Region","2020_2070",0,0,0
+"277","Mesoamerica","Permanent_crops","Sub_Region","2020_2030",0,0,0
+"278","Mesoamerica","Permanent_crops","Sub_Region","2020_2050",0,0,0
+"279","Mesoamerica","Permanent_crops","Sub_Region","2020_2070",0,0,0
+"280","North Africa","Permanent_crops","Sub_Region","2020_2030",0,0,0
+"281","North Africa","Permanent_crops","Sub_Region","2020_2050",0,0,0
+"282","North Africa","Permanent_crops","Sub_Region","2020_2070",0,0,0
+"283","North America","Permanent_crops","Sub_Region","2020_2030",0,0,0
+"284","North America","Permanent_crops","Sub_Region","2020_2050",0,0,0
+"285","North America","Permanent_crops","Sub_Region","2020_2070",0,0,0
+"286","North-East Asia","Permanent_crops","Sub_Region","2020_2030",0,0,0
+"287","North-East Asia","Permanent_crops","Sub_Region","2020_2050",0,0,0
+"288","North-East Asia","Permanent_crops","Sub_Region","2020_2070",0,0,0
+"289","Oceania","Permanent_crops","Sub_Region","2020_2030",0,0,0
+"290","Oceania","Permanent_crops","Sub_Region","2020_2050",0,0,0
+"291","Oceania","Permanent_crops","Sub_Region","2020_2070",0,0,0
+"292","South America","Permanent_crops","Sub_Region","2020_2030",0,0,0
+"293","South America","Permanent_crops","Sub_Region","2020_2050",0,0,0
+"294","South America","Permanent_crops","Sub_Region","2020_2070",0,0,0
+"295","South Asia","Permanent_crops","Sub_Region","2020_2030",0,0,0
+"296","South Asia","Permanent_crops","Sub_Region","2020_2050",0,0,0
+"297","South Asia","Permanent_crops","Sub_Region","2020_2070",0,0,0
+"298","South-East Asia","Permanent_crops","Sub_Region","2020_2030",0,0,0
+"299","South-East Asia","Permanent_crops","Sub_Region","2020_2050",0,0,0
+"300","South-East Asia","Permanent_crops","Sub_Region","2020_2070",0,0,0
+"301","Southern Africa","Permanent_crops","Sub_Region","2020_2030",0,0,0
+"302","Southern Africa","Permanent_crops","Sub_Region","2020_2050",0,0,0
+"303","Southern Africa","Permanent_crops","Sub_Region","2020_2070",0,0,0
+"304","West Africa","Permanent_crops","Sub_Region","2020_2030",0,0,0
+"305","West Africa","Permanent_crops","Sub_Region","2020_2050",0,0,0
+"306","West Africa","Permanent_crops","Sub_Region","2020_2070",0,0,0
+"307","Western Asia","Permanent_crops","Sub_Region","2020_2030",0,0,0
+"308","Western Asia","Permanent_crops","Sub_Region","2020_2050",0,0,0
+"309","Western Asia","Permanent_crops","Sub_Region","2020_2070",0,0,0
+"310","Antarctica","Pasture","Sub_Region","2020_2030",0,0,0
+"311","Antarctica","Pasture","Sub_Region","2020_2050",0,0,0
+"312","Antarctica","Pasture","Sub_Region","2020_2070",0,0,0
+"313","Caribbean","Pasture","Sub_Region","2020_2030",61017.6212125491,52372.9696759414,-8644.65153660777
+"314","Caribbean","Pasture","Sub_Region","2020_2050",61017.6212125491,43926.8988479396,-17090.7223646096
+"315","Caribbean","Pasture","Sub_Region","2020_2070",61017.6212125491,44825.3256424196,-16192.2955701296
+"316","Central Africa","Pasture","Sub_Region","2020_2030",1054313.95546769,878255.202518564,-176058.752949124
+"317","Central Africa","Pasture","Sub_Region","2020_2050",1054313.95546769,703041.159350178,-351272.79611751
+"318","Central Africa","Pasture","Sub_Region","2020_2070",1054313.95546769,720539.159980843,-333774.795486845
+"319","Central Asia","Pasture","Sub_Region","2020_2030",2608451.8509157,2477370.50076733,-131081.350148366
+"320","Central Asia","Pasture","Sub_Region","2020_2050",2608451.8509157,2342408.36986931,-266043.481046388
+"321","Central Asia","Pasture","Sub_Region","2020_2070",2608451.8509157,2542070.25566618,-66381.5952495122
+"322","Central and Western Europe","Pasture","Sub_Region","2020_2030",889673.672904857,671234.292742526,-218439.380162331
+"323","Central and Western Europe","Pasture","Sub_Region","2020_2050",889673.672904857,337081.386070766,-552592.286834091
+"324","Central and Western Europe","Pasture","Sub_Region","2020_2070",889673.672904857,304175.870386952,-585497.802517906
+"325","East Africa and adjacent islands","Pasture","Sub_Region","2020_2030",1865918.01203581,1701241.67898217,-164676.333053639
+"326","East Africa and adjacent islands","Pasture","Sub_Region","2020_2050",1865918.01203581,1296166.30984531,-569751.702190492
+"327","East Africa and adjacent islands","Pasture","Sub_Region","2020_2070",1865918.01203581,1400831.65311414,-465086.358921666
+"328","Eastern Europe","Pasture","Sub_Region","2020_2030",1141359.01743065,859900.560501515,-281458.456929135
+"329","Eastern Europe","Pasture","Sub_Region","2020_2050",1141359.01743065,494400.187733332,-646958.829697318
+"330","Eastern Europe","Pasture","Sub_Region","2020_2070",1141359.01743065,522070.283470932,-619288.733959719
+"331","Mesoamerica","Pasture","Sub_Region","2020_2030",919682.713247287,781115.83111562,-138566.882131666
+"332","Mesoamerica","Pasture","Sub_Region","2020_2050",919682.713247287,585669.137371323,-334013.575875964
+"333","Mesoamerica","Pasture","Sub_Region","2020_2070",919682.713247287,585651.22324807,-334031.489999217
+"334","North Africa","Pasture","Sub_Region","2020_2030",1384113.9003907,1328094.41974189,-56019.4806488182
+"335","North Africa","Pasture","Sub_Region","2020_2050",1384113.9003907,1129880.44565372,-254233.454736981
+"336","North Africa","Pasture","Sub_Region","2020_2070",1384113.9003907,1196340.83430352,-187773.06608718
+"337","North America","Pasture","Sub_Region","2020_2030",2673726.15309633,2013097.05337156,-660629.099724767
+"338","North America","Pasture","Sub_Region","2020_2050",2673726.15309633,1049120.62867594,-1624605.52442039
+"339","North America","Pasture","Sub_Region","2020_2070",2673726.15309633,1049889.10822881,-1623837.04486752
+"340","North-East Asia","Pasture","Sub_Region","2020_2030",5188099.90176893,5035906.93274727,-152192.969021661
+"341","North-East Asia","Pasture","Sub_Region","2020_2050",5188099.90176893,4659018.60387009,-529081.297898835
+"342","North-East Asia","Pasture","Sub_Region","2020_2070",5188099.90176893,4367092.72995059,-821007.171818335
+"343","Oceania","Pasture","Sub_Region","2020_2030",3460741.77670474,3312859.4123369,-147882.364367838
+"344","Oceania","Pasture","Sub_Region","2020_2050",3460741.77670474,2776356.40918165,-684385.367523085
+"345","Oceania","Pasture","Sub_Region","2020_2070",3460741.77670474,2854862.31644863,-605879.460256105
+"346","South America","Pasture","Sub_Region","2020_2030",4809738.25044835,4035679.17399607,-774059.076452279
+"347","South America","Pasture","Sub_Region","2020_2050",4809738.25044835,2978910.33877257,-1830827.91167577
+"348","South America","Pasture","Sub_Region","2020_2070",4809738.25044835,3369351.32326762,-1440386.92718072
+"349","South Asia","Pasture","Sub_Region","2020_2030",1649970.67143997,1251512.63971686,-398458.031723112
+"350","South Asia","Pasture","Sub_Region","2020_2050",1649970.67143997,1246700.81569107,-403269.855748899
+"351","South Asia","Pasture","Sub_Region","2020_2070",1649970.67143997,1246069.81076181,-403900.860678159
+"352","South-East Asia","Pasture","Sub_Region","2020_2030",176870.51183418,151436.754621127,-25433.7572130528
+"353","South-East Asia","Pasture","Sub_Region","2020_2050",176870.51183418,110645.019406399,-66225.4924277807
+"354","South-East Asia","Pasture","Sub_Region","2020_2070",176870.51183418,114170.994013574,-62699.5178206057
+"355","Southern Africa","Pasture","Sub_Region","2020_2030",2874236.36102222,2551690.24975975,-322546.111262467
+"356","Southern Africa","Pasture","Sub_Region","2020_2050",2874236.36102222,1859364.13286905,-1014872.22815317
+"357","Southern Africa","Pasture","Sub_Region","2020_2070",2874236.36102222,1589587.59623828,-1284648.76478394
+"358","West Africa","Pasture","Sub_Region","2020_2030",1457636.30465252,1275559.12217481,-182077.182477719
+"359","West Africa","Pasture","Sub_Region","2020_2050",1457636.30465252,966225.459471915,-491410.845180609
+"360","West Africa","Pasture","Sub_Region","2020_2070",1457636.30465252,909168.130314724,-548468.174337801
+"361","Western Asia","Pasture","Sub_Region","2020_2030",884112.764406667,1219024.89282538,334912.12841871
+"362","Western Asia","Pasture","Sub_Region","2020_2050",884112.764406667,1189453.79251737,305341.028110701
+"363","Western Asia","Pasture","Sub_Region","2020_2070",884112.764406667,1196032.4322733,311919.667866637
+"364","Antarctica","Primary_vegetation","Sub_Region","2020_2030",1519.04416943512,1519.04416943512,0
+"365","Antarctica","Primary_vegetation","Sub_Region","2020_2050",1519.04416943512,1519.04416943512,0
+"366","Antarctica","Primary_vegetation","Sub_Region","2020_2070",1519.04416943512,1519.04416943512,0
+"367","Caribbean","Primary_vegetation","Sub_Region","2020_2030",100304.942134793,90468.1427441018,-9836.7993906911
+"368","Caribbean","Primary_vegetation","Sub_Region","2020_2050",100304.942134793,86343.1489172693,-13961.7932175236
+"369","Caribbean","Primary_vegetation","Sub_Region","2020_2070",100304.942134793,86198.4591132004,-14106.4830215925
+"370","Central Africa","Primary_vegetation","Sub_Region","2020_2030",3275868.94337893,2938778.78045865,-337090.162920276
+"371","Central Africa","Primary_vegetation","Sub_Region","2020_2050",3275868.94337893,2906226.96699123,-369641.976387695
+"372","Central Africa","Primary_vegetation","Sub_Region","2020_2070",3275868.94337893,2905323.52399036,-370545.419388565
+"373","Central Asia","Primary_vegetation","Sub_Region","2020_2030",835998.007339909,740923.283163934,-95074.7241759754
+"374","Central Asia","Primary_vegetation","Sub_Region","2020_2050",835998.007339909,739150.106035862,-96847.9013040476
+"375","Central Asia","Primary_vegetation","Sub_Region","2020_2070",835998.007339909,698663.187648246,-137334.819691663
+"376","Central and Western Europe","Primary_vegetation","Sub_Region","2020_2030",1477884.8365737,1093206.91696468,-384677.919609019
+"377","Central and Western Europe","Primary_vegetation","Sub_Region","2020_2050",1477884.8365737,703495.614393764,-774389.222179936
+"378","Central and Western Europe","Primary_vegetation","Sub_Region","2020_2070",1477884.8365737,585951.581421012,-891933.255152688
+"379","East Africa and adjacent islands","Primary_vegetation","Sub_Region","2020_2030",1952169.85345905,1844261.7077922,-107908.145666852
+"380","East Africa and adjacent islands","Primary_vegetation","Sub_Region","2020_2050",1952169.85345905,1736692.49300147,-215477.360457575
+"381","East Africa and adjacent islands","Primary_vegetation","Sub_Region","2020_2070",1952169.85345905,1728867.1555645,-223302.697894555
+"382","Eastern Europe","Primary_vegetation","Sub_Region","2020_2030",13315374.0023379,12604890.3448554,-710483.657482481
+"383","Eastern Europe","Primary_vegetation","Sub_Region","2020_2050",13315374.0023379,12005303.4025242,-1310070.59981368
+"384","Eastern Europe","Primary_vegetation","Sub_Region","2020_2070",13315374.0023379,11810918.9690244,-1504455.03331344
+"385","Mesoamerica","Primary_vegetation","Sub_Region","2020_2030",1096596.84702361,1040470.97347961,-56125.8735439966
+"386","Mesoamerica","Primary_vegetation","Sub_Region","2020_2050",1096596.84702361,1021910.1733263,-74686.6736973119
+"387","Mesoamerica","Primary_vegetation","Sub_Region","2020_2070",1096596.84702361,1019765.12452916,-76831.7224944481
+"388","North Africa","Primary_vegetation","Sub_Region","2020_2030",6569831.70225845,6191000.12383703,-378831.57842142
+"389","North Africa","Primary_vegetation","Sub_Region","2020_2050",6569831.70225845,6176421.94493098,-393409.757327477
+"390","North Africa","Primary_vegetation","Sub_Region","2020_2070",6569831.70225845,6172652.11805884,-397179.584199616
+"391","North America","Primary_vegetation","Sub_Region","2020_2030",12886067.1380674,11579776.8144628,-1306290.3236046
+"392","North America","Primary_vegetation","Sub_Region","2020_2050",12886067.1380674,10527102.988333,-2358964.14973443
+"393","North America","Primary_vegetation","Sub_Region","2020_2070",12886067.1380674,10070577.6976291,-2815489.4404383
+"394","North-East Asia","Primary_vegetation","Sub_Region","2020_2030",3689241.23344588,2996041.8878632,-693199.345582677
+"395","North-East Asia","Primary_vegetation","Sub_Region","2020_2050",3689241.23344588,2987982.82525139,-701258.408194491
+"396","North-East Asia","Primary_vegetation","Sub_Region","2020_2070",3689241.23344588,2986417.69002163,-702823.543424247
+"397","Oceania","Primary_vegetation","Sub_Region","2020_2030",3713194.8263999,3175087.27163253,-538107.554767367
+"398","Oceania","Primary_vegetation","Sub_Region","2020_2050",3713194.8263999,3090833.51208352,-622361.314316379
+"399","Oceania","Primary_vegetation","Sub_Region","2020_2070",3713194.8263999,3041873.88294644,-671320.943453459
+"400","South America","Primary_vegetation","Sub_Region","2020_2030",9509935.22841532,8981319.26070303,-528615.967712285
+"401","South America","Primary_vegetation","Sub_Region","2020_2050",9509935.22841532,8492575.87158676,-1017359.35682856
+"402","South America","Primary_vegetation","Sub_Region","2020_2070",9509935.22841532,8492473.02106154,-1017462.20735378
+"403","South Asia","Primary_vegetation","Sub_Region","2020_2030",1684495.39674748,1427014.77409481,-257480.622652669
+"404","South Asia","Primary_vegetation","Sub_Region","2020_2050",1684495.39674748,1387634.48483838,-296860.911909105
+"405","South Asia","Primary_vegetation","Sub_Region","2020_2070",1684495.39674748,1371797.55448286,-312697.842264627
+"406","South-East Asia","Primary_vegetation","Sub_Region","2020_2030",2287096.30744237,2107467.06656646,-179629.240875913
+"407","South-East Asia","Primary_vegetation","Sub_Region","2020_2050",2287096.30744237,1929728.91338227,-357367.3940601
+"408","South-East Asia","Primary_vegetation","Sub_Region","2020_2070",2287096.30744237,1814623.70977082,-472472.597671557
+"409","Southern Africa","Primary_vegetation","Sub_Region","2020_2030",2319517.28422227,2184313.46463868,-135203.819583583
+"410","Southern Africa","Primary_vegetation","Sub_Region","2020_2050",2319517.28422227,2101215.54255991,-218301.741662356
+"411","Southern Africa","Primary_vegetation","Sub_Region","2020_2070",2319517.28422227,2068284.95819589,-251232.32602638
+"412","West Africa","Primary_vegetation","Sub_Region","2020_2030",2039753.13257194,2013685.83129803,-26067.3012739129
+"413","West Africa","Primary_vegetation","Sub_Region","2020_2050",2039753.13257194,2012283.50755502,-27469.6250169203
+"414","West Africa","Primary_vegetation","Sub_Region","2020_2070",2039753.13257194,2011091.04498148,-28662.0875904681
+"415","Western Asia","Primary_vegetation","Sub_Region","2020_2030",2455003.57221877,1704972.3539674,-750031.218251372
+"416","Western Asia","Primary_vegetation","Sub_Region","2020_2050",2455003.57221877,1704629.1677195,-750374.404499268
+"417","Western Asia","Primary_vegetation","Sub_Region","2020_2070",2455003.57221877,1704508.38604527,-750495.186173502

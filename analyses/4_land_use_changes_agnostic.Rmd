@@ -1,0 +1,353 @@
+---
+title: "4_land_use_changes (agnostic, config-driven)"
+output: html_notebook
+---
+
+```{r setup, message=FALSE}
+library(ebvcube)
+library(tidyterra)
+library(terra)
+library(tidyverse)
+library(graticule)
+library(sf)
+library(rworldmap)
+library(ggplot2)
+library(stringr)
+library(yaml)
+
+# Anchor wd to the notebook location (interactive use only;
+# knitr sets root.dir to the document directory automatically)
+if (requireNamespace("rstudioapi", quietly = TRUE) &&
+    rstudioapi::isAvailable()) {
+  setwd(dirname(rstudioapi::getSourceEditorContext()$path))
+}
+```
+
+# 0. Configuration
+
+The per-model contract — cube file path, entity → target class mapping,
+and which EBVcube metric to consume — lives in
+`../config/category_map.yaml`. Switching models is a single line: set
+`model_key` below to any key declared under `models:` in the YAML. The
+mapping and metric filter follow automatically.
+
+```{r config}
+cfg <- yaml::read_yaml("../config/category_map.yaml")
+
+# Single switch: pick the model whose cube to process
+model_key   <- "GLOBIO"               # one of names(cfg$models)
+model_label <- model_key
+
+stopifnot(model_key %in% names(cfg$models))
+mcfg <- cfg$models[[model_key]]
+
+cat("Active model:   ", model_label, "\n")
+cat("Config version: ", cfg$version, "\n")
+```
+
+# 1. Paths
+
+Cube file path resolves as `paths$data_root + models[[model]]$file` from
+the YAML. The IPBES regions shapefile is discovered by recursive search
+under `data_root` (using the pre-simplified version produced previously
+with `simplifyGeom(tolerance = 0.05)`).
+
+```{r paths}
+cube_path <- file.path(cfg$paths$data_root, mcfg$file)
+stopifnot(file.exists(cube_path))
+
+root_LU_cubes <- cfg$paths$data_root
+
+ipbes_shp <- list.files(root_LU_cubes, pattern = "\\.shp$",
+                        full.names = TRUE, ignore.case = TRUE,
+                        recursive  = TRUE)
+
+# Reduced (pre-simplified) shape — produced once with:
+# ipbesred <- simplifyGeom(vect(ipbes_full), tolerance = 0.05,
+#                          preserveTopology = TRUE)
+# writeVector(ipbesred, "../Data_geo/ipbes_regions_subregions/ipbes_reduced.shp")
+ipbesred <- vect(ipbes_shp[1])
+plot(ipbesred)
+```
+
+# 2. Cube metadata and metric filtering
+
+PLUM cubes carry three metrics per scenario (protected / unprotected /
+total); other models may carry only one. The per-model `metric_filter`
+block in the YAML declares which metric path(s) to consume — everything
+downstream sees only the filtered set.
+
+For PLUM the filter is `path_pattern: "metric_3/ebv_cube$"`, so the
+five-scenario list collapses from 15 rows to 5 (totals only). Setting
+`metric_filter: ~` in the YAML disables filtering for that model.
+
+```{r cube-metadata}
+cube_props     <- ebv_properties(cube_path,    verbose = FALSE)
+cube_paths_all <- ebv_datacubepaths(cube_path, verbose = FALSE)
+
+# Apply per-model metric filter
+cube_paths <- if (!is.null(mcfg$metric_filter$path_pattern)) {
+  cube_paths_all[grepl(mcfg$metric_filter$path_pattern,
+                       cube_paths_all$datacubepaths), ]
+} else if (!is.null(mcfg$metric_filter$keep)) {
+  cube_paths_all[cube_paths_all$metric_names %in%
+                 mcfg$metric_filter$keep, ]
+} else {
+  cube_paths_all
+}
+
+stopifnot(nrow(cube_paths) >= 1)
+
+cat("Model:     ", model_label, "\n")
+cat("Metrics retained after filter:\n")
+print(unique(cube_paths$metric_names))
+cat("Scenarios retained after filter:\n")
+print(unique(cube_paths$scenario_names))
+
+cat("Entities:\n");   print(cube_props@general$entity_names)
+cat("Timesteps:\n");  print(cube_props@temporal$dates)
+cat("EPSG:      ",    cube_props@spatial$epsg,       "\n")
+cat("Resolution:",    cube_props@spatial$resolution, "\n")
+cat("Extent:    ",    cube_props@spatial$extent,     "\n")
+
+print(cube_paths)
+```
+
+# 3. Category map for the active model
+
+Original entity names differ between models, so each gets its own
+mapping from native classes to the six target classes (`Urban`,
+`Cropland`, `Secondary_vegetation`, `Permanent_crops`, `Pasture`,
+`Primary_vegetation`). Entities mapped to `~` (YAML null → R `NA`) are
+excluded from the habitat-area denominator before normalization
+(e.g. `Barren` in PLUM, since polar/desert/rock pixels would otherwise
+distort the regional richness estimates).
+
+```{r category-map}
+category_map <- unlist(mcfg$entities)
+
+# Normalize potential string-form nulls to true NA
+category_map[category_map %in% c("", "NA")] <- NA_character_
+
+if (length(category_map) == 0) {
+  warning("category_map for '", model_label,
+          "' is empty — fill it in the YAML before running sections 4-5.")
+}
+
+# Entities excluded from the recategorization sum
+excluded_entities <- names(category_map)[is.na(category_map)]
+if (length(excluded_entities) > 0) {
+  cat("Excluded from habitat denominator (NA-mapped):\n")
+  print(excluded_entities)
+}
+
+# Active map: only entries with a defined target class
+category_map_active <- category_map[!is.na(category_map)]
+new_categories      <- unique(category_map_active)
+
+cat("Target classes produced for", model_label, ":\n")
+print(new_categories)
+
+category_map
+```
+
+# 4. Changes in area
+
+## 4.1 Percentage-point change per decade
+
+Per-decade change is computed directly from the fraction layers
+(`y_t1 - y_t0) / n_decades`), with `y` being the proportion (%) of
+pixel covered by a target class. No conversion to km² in this
+sub-section.
+
+dc_path <- cube_paths$datacubepaths[1]   # NfN
+dc_path <- cube_paths$datacubepaths[2]   # NfNl
+dc_path <- cube_paths$datacubepaths[3]   # NaC
+dc_path <- cube_paths$datacubepaths[4]   # NfS
+dc_path <- cube_paths$datacubepaths[5]   # BAU
+
+```{r}
+# ── 4.1 Percentage-point change per decade ──────────────────────────────────
+
+# Select scenario by NAME, not row index — robust across models with
+# different scenario counts/labels. Change scenario_choice to switch.
+scenario_choice <- "Nature as Culture"   # must match a value in cube_paths$scenario_names
+
+scenario_row <- cube_paths[cube_paths$scenario_names == scenario_choice, ]
+stopifnot(nrow(scenario_row) == 1)
+
+dc_path <- scenario_row$datacubepaths
+
+cat("Processing scenario:", scenario_row$scenario_names,
+    "| metric:", scenario_row$metric_names, "\n")
+
+# Metadata
+entity_names      <- cube_props@general$entity_names
+safe_entity_names <- gsub("[[:space:]/]+", "_", entity_names)
+timestep_labels   <- format(as.Date(cube_props@temporal$dates), "%Y")
+n_entities        <- length(entity_names)
+
+t0_label <- "2020"
+t1_label <- "2070"
+
+t0_idx <- which(timestep_labels == t0_label)
+t1_idx <- which(timestep_labels == t1_label)
+
+# Read all original entities for 2020 and 2070
+lu_frac <- vector("list", n_entities)
+names(lu_frac) <- safe_entity_names
+
+for (e in seq_len(n_entities)) {
+  cat(sprintf("[%d/%d] %s\n", e, n_entities, entity_names[e]))
+  frac <- ebv_read(
+    filepath     = cube_path,
+    datacubepath = dc_path,
+    entity       = e,
+    timestep     = c(t0_idx, t1_idx),
+    ignore_RAM   = TRUE,
+    verbose      = FALSE
+  )
+  names(frac) <- paste0(safe_entity_names[e], "_", c(t0_label, t1_label))
+  lu_frac[[safe_entity_names[e]]] <- frac
+}
+
+cat("Done.", model_label, "-", n_entities, "entities x 2 timesteps.\n")
+
+# Verify entity coverage of the category map
+unmapped <- setdiff(names(lu_frac), names(category_map))
+if (length(unmapped) > 0) {
+  stop("Entities present in cube but missing from category_map: ",
+       paste(unmapped, collapse = ", "),
+       "\n -> add them to config/category_map.yaml under models$",
+       model_key, "$entities")
+}
+
+# Recategorise: sum fractions across entities sharing a new category.
+# Entities mapped to NA (~ in YAML) are dropped from the sum.
+new_categories <- unique(category_map)
+
+lu_frac_recat <- lapply(new_categories, function(new_cat) {
+  old_entities  <- names(category_map)[category_map == new_cat]
+  summed        <- Reduce(`+`, lu_frac[old_entities])
+  names(summed) <- paste0(new_cat, "_", c(t0_label, t1_label))
+  summed
+}) |> setNames(new_categories)
+
+cat("Recategorised into", length(new_categories), "classes:\n")
+print(new_categories)
+
+# Percentage-point change per decade
+n_decades <- (as.numeric(t1_label) - as.numeric(t0_label)) / 10
+
+lu_pct_change_per_decade <- lapply(names(lu_frac_recat), function(lu) {
+  r  <- lu_frac_recat[[lu]]
+  y0 <- r[[paste0(lu, "_", t0_label)]]
+  y1 <- r[[paste0(lu, "_", t1_label)]]
+  change_per_decade <- (y1 - y0) / n_decades
+  names(change_per_decade) <-
+    paste0(lu, "_pctchange_per_decade_", t0_label, "_", t1_label)
+  change_per_decade
+}) |> setNames(names(lu_frac_recat))
+
+cat("Percentage-point change per decade computed for", model_label, ":\n")
+print(names(lu_pct_change_per_decade))
+
+# Quick check
+plot(lu_pct_change_per_decade$Primary_vegetation,
+     main = paste(model_label, "- Primary_vegetation pct change/decade"))
+```
+
+```{r}
+pct_change_stack <- rast(lu_pct_change_per_decade)
+plot(pct_change_stack, main = paste(model_label, names(pct_change_stack)))
+```
+
+## 4.2 Changes in km²
+
+Fractions are converted to km² using a latitude-varying pixel-area
+raster (`terra::cellSize`), built once and recycled across entities.
+
+```{r}
+dc_path <- cube_paths$datacubepaths[3]
+
+# Pixel-area raster (latitude-varying), built once
+pixel_area_km2 <- cellSize(
+  rast(
+    extent     = ext(cube_props@spatial$extent),
+    resolution = cube_props@spatial$resolution,
+    crs        = paste0("EPSG:", cube_props@spatial$epsg)
+  ),
+  unit = "km"
+)
+
+entity_names        <- cube_props@general$entity_names
+safe_entity_names   <- gsub("[[:space:]/]+", "_", entity_names)
+timestep_labels_all <- format(as.Date(cube_props@temporal$dates), "%Y")
+n_entities          <- length(entity_names)
+
+# Restrict to 2020 and 2070
+t0_label <- "2020"
+t1_label <- "2070"
+keep_idx <- which(timestep_labels_all %in% c(t0_label, t1_label))
+timestep_labels <- timestep_labels_all[keep_idx]
+n_timesteps     <- length(timestep_labels)
+
+# Loop: read 2020 & 2070 per entity, convert fraction -> km²
+lu_area_km2 <- vector("list", n_entities)
+names(lu_area_km2) <- safe_entity_names
+
+for (e in seq_len(n_entities)) {
+
+  cat(sprintf("[%d/%d] %s\n", e, n_entities, entity_names[e]))
+
+  frac <- ebv_read(
+    filepath     = cube_path,
+    datacubepath = dc_path,
+    entity       = e,
+    timestep     = keep_idx,
+    ignore_RAM   = TRUE,
+    verbose      = FALSE
+  )
+
+  area        <- frac * pixel_area_km2
+  names(area) <- paste0(safe_entity_names[e], "_", timestep_labels)
+
+  lu_area_km2[[safe_entity_names[e]]] <- area
+}
+
+cat("Done.", model_label, "-", n_entities, "entities x",
+    n_timesteps, "timesteps.\n")
+```
+
+```{r}
+unmapped <- setdiff(names(lu_area_km2), names(category_map))
+if (length(unmapped) > 0) {
+  stop("Entities present in cube but missing from category_map: ",
+       paste(unmapped, collapse = ", "),
+       "\n -> add them to config/category_map.yaml under models$",
+       model_key, "$entities")
+}
+```
+
+Applying the recategorization to the km² rasters
+
+```{r}
+lu_area_km2_recat <- lapply(new_categories, function(new_cat) {
+  old_entities  <- names(category_map)[category_map == new_cat]
+  summed        <- Reduce(`+`, lu_area_km2[old_entities])
+  names(summed) <- paste0(new_cat, "_", timestep_labels)
+  summed
+}) |> setNames(new_categories)
+
+cat("Reclassified into", length(new_categories), "categories for",
+    model_label, ":\n")
+print(new_categories)
+```
+
+```{r}
+lu_area_stack <- rast(lu_area_km2_recat)
+plot(lu_area_stack, main = paste(model_label, names(lu_area_stack)))
+
+plot(lu_area_km2_recat$Primary_vegetation,
+     main = paste(model_label, "- Primary_vegetation"))
+```

@@ -1,0 +1,523 @@
+---
+title: "Estimating Land Use Change — GLOBIO"
+output: html_notebook
+---
+
+```{r setup, message=FALSE}
+library(ebvcube)
+library(tidyterra)
+library(terra)
+library(tidyverse)
+library(graticule)
+library(sf)
+library(rworldmap)
+library(ggplot2)
+library(stringr)
+
+#setting the working directory
+setwd(dirname(rstudioapi::getSourceEditorContext()$path))
+```
+
+# 1. Paths
+
+Here we call the EBVcube file with GLOBIO.
+
+For the purpose of this exploratory analysis I need to simplify the ipbes vector file, so that it runs faster. To provide a fast analysis, I have set a tolerance parameter of `0.05` meaning that withing a 0.05 degree grid, every vertice would be flattened in a single straight line. Given that the rasters we are working with are 0.5, this does not create any practical problem
+
+```{r}
+root_LU_cubes <- "../Data_geo/"
+
+# EBVcube NetCDFs
+dc <- list(
+  globio_lu_05 = "../Data_geo/land_use/GLOBIO/cubes/alkemade_ecostr_id103_20260216.nc",
+  plum_lu_05   = "../Data_geo/land_use/PLUM/cubes/alexander_ecostr_id102_20260320.nc",
+  scenmip_0.25 = "../Data_geo/land_use/ScenMIP7-LUH3/cubes/chini_ecostr_id105_20260325.nc"
+)
+
+# IPBES regions shapefile — used in regional aggregation (next step)
+ipbes_shp <- list.files(root_LU_cubes, pattern = "\\.shp$",
+                        full.names = TRUE, ignore.case = TRUE, recursive = TRUE)
+ipbes_shp
+
+#Downscaling the IPBES shape file directly from the original file
+#ipbes <- vect(ipbes_shp)
+#ipbesred <- simplifyGeom(ipbes, tolerance = 0.05, preserveTopology = TRUE)
+#writeVector(ipbesred, "../Data_geo/ipbes_regions_subregions/ipbes_reduced.shp")
+
+# calling the reduced shape (time saver)
+ipbesred <- vect(ipbes_shp[1])
+plot(ipbesred)
+
+
+```
+
+# 2. GLOBIO cube metadata
+
+```{r globio-metadata}
+globio05       <- ebv_properties(dc$globio_lu_05, verbose = FALSE)
+globio05_paths <- ebv_datacubepaths(dc$globio_lu_05, verbose = FALSE)
+
+# Available scenarios: NfN [1,1] | NaC [2,1] | NfS [3,1] | BAU [4,1]
+print(globio05_paths)
+
+cat("Entities:\n");   print(globio05@general$entity_names)
+cat("Timesteps:\n");  print(globio05@temporal$dates)
+cat("EPSG:      ",    globio05@spatial$epsg,       "\n")
+cat("Resolution:",    globio05@spatial$resolution, "\n")
+cat("Extent:    ",    globio05@spatial$extent,   "\n")
+```
+
+# 3. Fraction → Area (km²): all entities × all timesteps
+
+Working with the NfN scenario (`globio05_paths[1, 1]`). Change the row index to switch scenario. Available scenarios: NfN [1,1] \| NaC [2,1] \| NfS [3,1] \| BAU [4,1]
+
+```{r area-conversion}
+dc_path <- globio05_paths[1, 1]   
+
+# Pixel-area raster — latitude-varying, built once
+pixel_area_km2 <- cellSize(
+  rast(extent = ext(-180, 180, -90, 90), resolution = 0.5, crs = "EPSG:4326"),
+  unit = "km"
+)
+
+# Metadata for the loop
+entity_names      <- globio05@general$entity_names
+safe_entity_names <- gsub("[[:space:]/]+", "_", entity_names)
+timestep_labels   <- format(as.Date(globio05@temporal$dates), "%Y")
+n_entities        <- length(entity_names)
+n_timesteps       <- length(timestep_labels)
+
+# Loop: read all timesteps per entity, convert fraction → km², name layers
+globio_area_km2 <- vector("list", n_entities)
+names(globio_area_km2) <- safe_entity_names
+
+for (e in seq_len(n_entities)) {
+
+  cat(sprintf("[%d/%d] %s\n", e, n_entities, entity_names[e]))
+
+  frac <- ebv_read(
+    filepath     = dc$globio_lu_05,
+    datacubepath = dc_path,
+    entity       = e,
+    timestep     = seq_len(n_timesteps),
+    ignore_RAM   = TRUE,
+    verbose      = FALSE
+  )
+
+  area        <- frac * pixel_area_km2
+  names(area) <- paste0(safe_entity_names[e], "_", timestep_labels)
+
+  globio_area_km2[[safe_entity_names[e]]] <- area
+}
+
+cat("Done.", n_entities, "entities ×", n_timesteps, "timesteps.\n")
+```
+
+## 3.1 Reclassifying the rasters into the six categories used for cSAR
+
+We do the following recategorisation:
+
+| Original categories | LUH3 reclass |
+|------------------------------------|------------------------------------|
+| urban | urban |
+| cropland | cropland |
+| potential sec. vegetation | secondary vegetation |
+| agroforestry | permanent crops |
+| pasture | pasture |
+| rangeland | pasture |
+| forestry | secondary vegetation |
+| secondary vegetation | secondary vegetation |
+| unmanaged forest | primary vegetation |
+| shrubland/grassland | primary vegetation |
+| Other, (Note: this categoty contains lichen and mosses) | primary vegetation |
+| bare areas | primary vegetation |
+
+```{r}
+# mapping old categories to the LUH3 reclass
+
+category_map <- c(
+  Urban                           = "Urban",
+  Cropland                        = "Cropland",
+  Potential_secondary_vegetation  = "Secondary_vegetation",
+  Agroforestry                    = "Permanent_crops",
+  Pasture                         = "Pasture",
+  Rangeland                       = "Pasture",
+  Forestry                        = "Secondary_vegetation",
+  Secondary_vegetation            = "Secondary_vegetation",
+  Unmanaged_forest                = "Primary_vegetation",
+  Shrubland_Grassland             = "Primary_vegetation",
+  Other                           = "Primary_vegetation",
+  Bare_Areas                      = "Primary_vegetation"
+)
+
+stopifnot(all(names(globio_area_km2) %in% names(category_map)))
+```
+
+Applying these changes to all other rasters
+
+```{r}
+new_categories <- unique(category_map)
+
+globio_area_km2_recat <- lapply(new_categories, function(new_cat) {
+  old_entities <- names(category_map)[category_map == new_cat]
+  # Sum the corresponding rasters (same layer structure: 4 timesteps each)
+  rasters_to_sum <- globio_area_km2[old_entities]
+  summed <- Reduce(`+`, rasters_to_sum)
+  names(summed) <- paste0(new_cat, "_", timestep_labels)
+  summed
+})
+
+names(globio_area_km2_recat) <- new_categories
+
+cat("Reclassified into", length(new_categories), "categories:\n")
+print(new_categories)
+```
+
+# 4. Calling affinities calibration table from Martins et al (2022) cSAR—BES-SIM 1.
+
+Affinities have been taken from the supplementary material on the paper described in the heading.
+
+```{r}
+ group_affinity_22 <- read.csv("../Data_geo/affinities/affinities_martins.csv")
+```
+
+The table created by Lilly has a mistake and it is related to the fact that the columns h are in reality sigmas and need to be converted. Also in the mean_h table shared by HP and made by Alexandra, there are two things to note:
+
+1)  they use a z= 0.186
+2)  the h values for the non-forest species are normalised to the max value (e.g. h_pasture = 2.67) as affinities shouldn't be greater than 1.
+
+The following chunk corrects this:
+
+```{r}
+sigma_cols <- group_affinity_22 %>%
+  select(starts_with("sigma_")) %>%
+  names()
+
+# step 1: raw affinity per land-use type, every row
+group_affinity_22 <- group_affinity_22 %>%
+  mutate(across(all_of(sigma_cols),
+                .fns = ~ (1 - .x)^(1 / z.value),
+                .names = "h_raw_{str_remove(.col, 'sigma_')}"))
+
+h_raw_cols <- group_affinity_22 %>%
+  select(starts_with("h_raw_")) %>%
+  names()
+
+# step 2: row-wise max across land-use types (constant within Group, since sigma is broadcast)
+group_affinity_22 <- group_affinity_22 %>%
+  rowwise() %>%
+  mutate(h_max = max(c_across(all_of(h_raw_cols)), na.rm = TRUE)) %>%
+  ungroup()
+
+# step 3: normalize only non-forest rows; leave Forest as the raw, uncapped value
+group_affinity_22 <- group_affinity_22 %>%
+  mutate(across(all_of(h_raw_cols),
+                .fns = ~ if_else(Group == "Forest", .x, .x / h_max),
+                .names = "h_{str_remove(.col, 'h_raw_')}")) %>%
+  select(-all_of(h_raw_cols), -h_max)
+```
+
+Extracting h-values for the taxon groups and z-values (NOTE: z-values have been defined as 0.2 based on literature)
+
+```{r}
+get_h <- function(taxon) {
+  row <- group_affinity_22 |> filter(Group == taxon) |> slice(1)
+  c(
+    Primary_vegetation   = row$h_primary_vegetation,
+    Secondary_vegetation = row$h_secondary_vegetation,
+    Pasture              = row$h_pastures,
+    Cropland             = row$h_cropland,
+    Permanent_crops      = row$h_tree_plantation,
+    Urban                = row$h_urban
+  )
+}
+
+h_forest    <- get_h("Forest")
+h_nonforest <- get_h("Non-Forest")
+
+z_forest    <- group_affinity_22 |>
+  filter(Group == "Forest")     |>
+  pull(z.value) |> unique()
+z_nonforest <- group_affinity_22 |>
+  filter(Group == "Non-Forest") |>
+  pull(z.value) |> unique()
+```
+
+defining the timesteps for comparison
+
+```{r}
+t0_label <- "2020"
+t1_label <- "2070"
+```
+
+# 5. Relative change in species richness at the local scale (gridcell)
+
+Martins have defined the Relative change in species richness for each functional (or taxonomic) group $i$ between two timesteps $t$ ($t_0$ as the beginning and $t_1$ as the end of the period) as:
+
+$$R\Delta_{i,u} = \left( \frac{\sum_j^n h_{ij} · A_{j,u,t_1} - \sum_j^n h_{ij} · A_{j,u,t_0}}{\sum_j^n h_{ij} · A_{j,u,t_0}} \right)^z$$ where $A_{j,u,t}$ is the area of each land use type $j$, in each sampling unit $u$ at time $t$, derived from the recategorised rasters in the steps before, $h_{ij}$ is the affinity of the species group $i$ to the land use type $j$, $n$ is the number of land use types, and $z$ is the constant indicating the rate at which species richness increases with area.
+
+**CORRECTION:** After reviewing the outputs which where strangely huge with HP, we came back to the formula detailed above and detected a mistake. The z-value should be applied to each species richness $(\sum_j^n h_{ij} · A_{j,u,t})$ at the different timesteps, so that the formula is written as:
+
+$$R\Delta_{i,u} = \frac{(\sum_j^n h_{ij} · A_{j,u,t_1})^z - (\sum_j^n h_{ij} · A_{j,u,t_0})^z}{(\sum_j^n h_{ij} · A_{j,u,t_0})^z} = \left( \frac{\sum_j^n h_{ij} · A_{j,u,t_1}}{\sum_j^n h_{ij} · A_{j,u,t_0}}\right)^z - 1$$ $$R\Delta_{i,u} = \left( \frac{\sum_j^n h_{ij} · A_{j,u,t_1}}{\sum_j^n h_{ij} · A_{j,u,t_0}}\right)^z - 1$$
+
+## 5.1 Defining the Sums of species per pixel for all land uses at the different timesepts.
+
+In the first step the function weighted_sum is defined to estimate $\sum_j^n h_{ij} · A_{j,u,t}$ for each timestep. As we are working directly with the extracted from the GLOBIO EBVcube, this section is done directly using the rasters. Note that `weighted_sum` refers to $\sum_j^n h_{ij} · A_{j,u,t}$
+
+```{r}
+weighted_sum <- function(h_vec, timestep_label) {
+  layers <- lapply(names(h_vec), function(lu) {
+    globio_area_km2_recat[[lu]][[paste0(lu, "_", timestep_label)]] * h_vec[[lu]]
+  })
+  Reduce(`+`, layers)
+}
+```
+
+## 5.2 Estimating relative change in species richness using the `weighted_sum`
+
+```{r}
+rdelta_rasters <- list(
+  Forest = {
+    sum_t0 <- weighted_sum(h_forest, t0_label)
+    sum_t1 <- weighted_sum(h_forest, t1_label)
+    rdelta <- (sum_t1 / sum_t0)^z_forest - 1
+    rdelta[is.infinite(rdelta)] <- NA
+    names(rdelta) <- paste0("RDelta_Forest_", t0_label, "_", t1_label)
+    rdelta
+  },
+  Non_Forest = {
+    sum_t0 <- weighted_sum(h_nonforest, t0_label)
+    sum_t1 <- weighted_sum(h_nonforest, t1_label)
+    rdelta <- (sum_t1 / sum_t0)^z_nonforest - 1
+    rdelta[is.infinite(rdelta)] <- NA
+    names(rdelta) <- paste0("RDelta_NonForest_", t0_label, "_", t1_label)
+    rdelta
+  }
+)
+```
+
+```{r}
+summary(rdelta_rasters$Forest)
+```
+
+```{r}
+r <- rdelta_rasters$Forest
+
+# Convert to a data frame with coordinates for inspection
+r_df <- as.data.frame(r, xy = TRUE, na.rm = TRUE)
+names(r_df)[3] <- "RDelta"
+
+# Top and bottom 1% thresholds
+q_low  <- quantile(r_df$RDelta, 0.01, na.rm = TRUE)
+q_high <- quantile(r_df$RDelta, 0.99, na.rm = TRUE)
+
+cat("1st percentile:", q_low, "\n99th percentile:", q_high, "\n")
+
+# Flag extreme pixels
+r_extreme <- r
+r_extreme[r_extreme > q_low & r_extreme < q_high] <- NA   # keep only tails
+
+# ── Map 1: just the extreme pixels, overlaid on a basemap-style plot ────────
+
+plot(r_extreme, col = c("blue", "red"), main = "Extreme RΔ pixels (top/bottom 1%) — Forest")
+
+# ── Map 2: highlight them on top of the full RΔ raster for context ──────────
+
+plot(r, main = "RΔ Forest with extreme pixels highlighted")
+points(r_df[r_df$RDelta <= q_low | r_df$RDelta >= q_high, c("x", "y")],
+       pch = 16, cex = 0.4, col = "black")
+```
+
+```{r}
+extreme_pixels <- r_df |>
+  filter(RDelta <= q_low | RDelta >= q_high) |>
+  arrange(RDelta)
+
+extreme_pixels
+nrow(extreme_pixels)
+```
+
+```{r}
+ggplot() +
+  geom_spatraster(data = rdelta_rasters$Forest) +
+  scale_fill_gradient2(
+    low = "#b2182b", mid = "#f7f7f7", high = "#2166ac",   # ColorBrewer RdBu stops
+    midpoint = 0,
+    na.value = NA,
+    name = expression(Delta*"value")
+  ) +
+  coord_sf(expand = FALSE) +
+  theme_void() +
+  theme(legend.position = "bottom", legend.key.width = unit(2, "cm"))
+```
+
+non-forest
+
+```{r}
+ggplot() +
+  geom_spatraster(data = rdelta_rasters$Non_Forest) +
+  scale_fill_gradient2(
+    low = "#b2182b", mid = "#f7f7f7", high = "#2166ac",   # ColorBrewer RdBu stops
+    midpoint = 0,
+    na.value = NA,
+    name = expression(Delta*"value")
+  ) +
+  coord_sf(expand = FALSE) +
+  theme_void() +
+  theme(legend.position = "bottom", legend.key.width = unit(2, "cm"))
+```
+
+```{r}
+summary(rdelta_rasters$Forest)
+summary(rdelta_rasters$Non_Forest)
+```
+
+# 6. Global, regional and subregional totals — area and habitat-weighted area
+
+Tables of (a) raw area per entity, and (b) habitat-weighted area per taxon group are built at three scales: global, IPBES region, and IPBES subregion. The weighted-area tables are the input to the cSAR formula at each scale.
+
+## 6.1 Downscaling the IPBES shapefile and rasterizing regions/subregions
+
+```{r}
+ipbesred$Region     <- as.factor(ipbesred$Region)
+ipbesred$Sub_Region <- as.factor(ipbesred$Sub_Region)
+zone_region    <- rasterize(ipbesred, pixel_area_km2, field = "Region")
+zone_subregion <- rasterize(ipbesred, pixel_area_km2, field = "Sub_Region")
+```
+
+## 6.2 Area totals — global, region, subregion
+
+```{r}
+zonal_sum <- function(r, zone, entity_name, zone_label) {
+  zonal(r, zone, fun = "sum", na.rm = TRUE) |>
+    pivot_longer(-1, names_to = "timestep", values_to = "area_km2") |>
+    rename(zone = 1) |>
+    mutate(
+      entity    = entity_name,
+      zone_type = zone_label,
+      timestep  = gsub(paste0(entity_name, "_"), "", timestep)
+    )
+}
+```
+
+```{r}
+globio_totals_df <- lapply(globio_area_km2_recat, function(r) {
+  global(r, fun = "sum", na.rm = TRUE)
+}) |> bind_rows(.id = "entity")
+```
+
+```{r}
+globio_global_totals <- globio_totals_df |>
+  rownames_to_column("layer") |>
+  mutate(
+    timestep  = mapply(function(e, l) gsub(paste0(e, "_"), "", l), entity, layer),
+    zone      = "Global",
+    zone_type = "Global",
+    area_km2  = sum
+  ) |>
+  select(zone, timestep, area_km2, entity, zone_type)
+```
+
+```{r}
+globio_region_totals <- lapply(names(globio_area_km2_recat), function(ent) {
+  zonal_sum(globio_area_km2_recat[[ent]], zone_region, ent, "Region")
+}) |> bind_rows()
+```
+
+```{r}
+globio_subregion_totals <- lapply(names(globio_area_km2_recat), function(ent) {
+  zonal_sum(globio_area_km2_recat[[ent]], zone_subregion, ent, "Sub_Region")
+}) |> bind_rows()
+```
+
+```{r}
+globio_zonal_totals <- bind_rows(globio_global_totals, globio_region_totals, globio_subregion_totals)
+globio_zonal_totals
+```
+
+Pivoting globio_zonal_totals to set areas_year as columns
+
+```{r}
+globio_zonal_totals_wide <- globio_zonal_totals |>
+  pivot_wider(
+    names_from  = timestep,
+    values_from = area_km2,
+    names_prefix = "area_"
+  )
+
+globio_zonal_totals_wide
+```
+
+# 7. Relative change in species richness — global, region, subregion
+
+For each taxon group, multiply each entity's area total by that entity's affinity h, sum across entities within each zone/timestep to get the weighted_areas $\sum_{j}^n h_{ij}·A_{j,u,t}$, then apply the RΔ formula between t0 and each later timestep.
+
+```{r}
+weighted_zonal <- function(totals_df, h_vec, taxon_name) {
+  totals_df |>
+    mutate(h = h_vec[entity]) |>
+    mutate(across(starts_with("area_"), ~ .x * h)) |>
+    group_by(zone, zone_type) |>
+    summarise(across(starts_with("area_"), ~ sum(.x, na.rm = TRUE)),
+              .groups = "drop") |>
+    rename_with(~ gsub("^area_", "weighted_area_", .x), starts_with("area_")) |>
+    mutate(taxon = taxon_name)
+}
+```
+
+```{r}
+globio_weighted_totals <- bind_rows(
+  weighted_zonal(globio_zonal_totals_wide, h_forest,    "Forest"),
+  weighted_zonal(globio_zonal_totals_wide, h_nonforest, "Non_Forest")
+)
+```
+
+```{r}
+z_lookup <- c(Forest = z_forest, Non_Forest = z_nonforest)
+
+rdelta_zonal_df <- globio_weighted_totals |>
+  pivot_longer(
+    cols = starts_with("weighted_area_"),
+    names_to  = "timestep",
+    values_to = "weighted_area",
+    names_prefix = "weighted_area_"
+  ) |>
+  group_by(zone, zone_type, taxon) |>
+  filter(any(timestep == t0_label)) |>          # skip zones with no t0 baseline
+  mutate(weighted_area_0 = weighted_area[timestep == t0_label]) |>
+  filter(timestep != t0_label) |>
+  mutate(
+    weighted_area_1 = weighted_area,
+    z               = z_lookup[taxon],
+    RDelta          = (weighted_area_1 / weighted_area_0)^z - 1,
+    RDelta          = ifelse(is.infinite(RDelta), NA, RDelta),
+    year_comparison = paste0(t0_label, "_", timestep)
+  ) |>
+  ungroup() |>
+  select(zone, zone_type, taxon, year_comparison, weighted_area_0, weighted_area_1, RDelta)
+
+rdelta_zonal_df
+```
+
+# 8. Saving outputs
+
+## 8.1 Results as tabular data (regional and global estimates):
+
+Following this convention to save the name = deltas\_<scenario><LU projection><date>.csv
+
+```{r}
+#convention to save the name = areas_<scenario><LU projection><date>.csv  /  rdelta_<scenario><LU projection><date>.csv
+
+#write.csv(globio_zonal_totals_wide, "../BES_results/results_biodiversity/cSAR_iDiv/areas_NfN_GLOBIO_18062026.csv")
+#write.csv(rdelta_zonal_df,      "../BES_results/results_biodiversity/cSAR_iDiv/rdelta_NfN_GLOBIO_18062026.csv")
+```
+
+## 8.2 Results as rasters (local estimates)
+
+```{r}
+#for forest species
+#writeRaster(rdelta_rasters$Forest, "../BES_results/results_biodiversity/cSAR_iDiv/rasters/ssdelta_forest_NfN_GLOBIO_2020-2027.tif", datatype= "FLT4S", NAflag=-9999, overwrite=TRUE)
+
+# for non-forest species
+#writeRaster(rdelta_rasters$Non_Forest, "../BES_results/results_biodiversity/cSAR_iDiv/rasters/ssdelta_nonforest_NfN_GLOBIO_2020-2027.tif", datatype= "FLT4S", NAflag=-9999, overwrite=TRUE)
+```

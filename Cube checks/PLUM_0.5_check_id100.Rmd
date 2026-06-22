@@ -1,0 +1,98 @@
+---
+title: "PLUM Forest managment - ID100"
+output: html_notebook
+date: "2026-02-19"
+---
+
+```{r}
+library(ebvcube)
+library(terra)
+```
+
+## Listing all new created .nc files
+
+```{r}
+rm(list = ls())
+
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+root <- '../Data_geo/'
+
+nc_files <- list.files(
+  path = root,
+  pattern = "\\.nc$",
+  recursive = TRUE,
+  full.names = TRUE,
+  ignore.case = TRUE
+)
+
+# Print the list of .nc files
+print(nc_files)
+```
+
+### Global properties
+
+```{r}
+plum <- ebv_properties(nc_files[4], verbose=FALSE)
+print(plum)
+```
+
+```{r}
+# Check slot names
+slotNames(plum)
+```
+
+### Cube paths to see metric names and descriptions
+
+```{r}
+plumpaths <- ebv_datacubepaths(nc_files[4], verbose = FALSE)
+plumpaths
+```
+
+### Metric properties
+
+```{r}
+plum_dc <- ebv_properties(nc_files[4], plumpaths[1,1], verbose=FALSE)
+plum_dc@metric
+```
+
+### Spatio-temporal and resolution properties
+
+```{r}
+# Spatial 
+cat("EPSG: ", plum@spatial$epsg, "\n")
+cat("Resolution: ", plum@spatial$resolution, "\n")
+cat("Extent: ", plum@spatial$extent, "\n")
+
+# Temporal
+cat("Dates: ", as.character(plum@temporal$dates))
+```
+
+### Data type
+
+```{r}
+plum_dc@ebv_cube$typ
+plum_dc@ebv_cube$fillvalue
+```
+
+### Entity names
+
+```{r}
+plum <- ebv_properties(nc_files[4],  verbose=FALSE)
+plum@general$entity_names
+```
+
+### Plot data for one entity and one timestep
+
+```{r}
+datacube_path <- ebv_datacubepaths(nc_files[4])
+dc <- datacube_path[3,1]
+
+start.time <- Sys.time()
+data <- ebv_read(nc_files[4], dc, entity = 1, timestep = 1:2, type = 'r')
+end.time <- Sys.time()
+
+time.taken <- end.time - start.time
+time.taken
+
+plot(data)
+```

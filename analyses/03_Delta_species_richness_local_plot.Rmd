@@ -1,0 +1,169 @@
+---
+title: "02_Delta_species_richness_local_plot"
+output: html_document
+---
+
+This notebook creates plots of relative biodiversity change at the local scale
+
+```{r}
+library(terra)
+library(ggplot2)
+library(tidyterra)
+library(rnaturalearth)
+library(sf)
+library(stringr)
+
+setwd(dirname(rstudioapi::getSourceEditorContext()$path))
+```
+
+```{r}
+# List all raster files in the project folder and subfolders
+file_paths <- list.files(
+   path = "../BES_results/",
+   pattern = "\\.tif$",
+   recursive = TRUE,
+   full.names = TRUE,
+   ignore.case = TRUE
+)
+file_paths
+rasters <- rast(file_paths)
+```
+
+```{r}
+# Extract just the filename without path or extension
+file_names <- tools::file_path_sans_ext(basename(file_paths))
+file_names
+```
+
+```{r}
+names(rasters) <- file_names
+names(rasters)
+```
+
+```{r}
+# Convert to a long dataframe with x, y, layer name, and value
+df <- as.data.frame(rasters, xy = TRUE)
+
+# Reshape from wide (one column per layer) to long format
+df_long <- tidyr::pivot_longer(
+  df,
+  cols = -c(x, y),
+  names_to = "layer",
+  values_to = "value"
+)
+
+# Extract forest_type and scenario from the layer name
+df_long <- df_long %>%
+  mutate(
+    forest_type = str_extract(layer, "nonforest|forest"),
+    scenario    = str_extract(layer, "BAU|NaC|NfN|NfS")
+  )
+
+# Set factor order: forest_type controls columns, scenario controls rows
+df_long$forest_type <- factor(df_long$forest_type, levels = c("forest", "nonforest"))
+df_long$scenario <- factor(df_long$scenario, levels = c("NfN", "NaC", "NfS", "BAU"))
+```
+
+
+```{r}
+table(df_long$forest_type, useNA = "ifany")
+table(df_long$scenario, useNA = "ifany")
+```
+
+```{r}
+# Get country/coastline boundaries
+coastline <- ne_coastline(scale = "medium", returnclass = "sf")
+coastline <- st_make_valid(coastline)
+```
+
+```{r}
+# Shared continuous colour scale limits — same range used in every plot below
+# so all panels and all figures remain directly comparable
+value_limits <- range(df_long$value, na.rm = TRUE)
+value_limits
+```
+
+# All scenarios × forest type — single faceted plot
+
+```{r}
+maps <- ggplot(df_long) +
+  geom_tile(aes(x = x, y = y, fill = value)) +
+  geom_sf(data = coastline, color = "grey60", linewidth = 0.1, inherit.aes = FALSE) +
+  facet_grid(rows = vars(scenario), cols = vars(forest_type)) +
+  scale_fill_distiller(
+    palette  = "RdBu",
+    direction = 1,
+    limits   = value_limits,
+    oob      = scales::squish,
+    na.value = NA,
+    name     = expression(Delta*"value")
+  ) +
+  coord_sf(expand = FALSE, xlim = c(-180, 180), ylim = c(-90, 90)) +
+  theme_void() +
+  theme(
+    legend.position    = "bottom",
+    legend.key.width   = unit(2, "cm"),
+    legend.key.height  = unit(0.3, "cm"),
+    legend.text        = element_text(size = 7),
+    legend.title       = element_text(size = 9),
+    strip.text         = element_text(size = 10, face = "bold")
+  )
+
+maps
+```
+
+```{r}
+# How many NAs are in the value column?
+sum(is.na(df_long$value))
+
+# What's the actual range of non-NA values?
+range(df_long$value, na.rm = TRUE)
+```
+
+# Pairwise comparison — one figure per scenario
+
+```{r}
+# Reusable function to make one scenario's forest vs nonforest plot
+# Uses the same value_limits as the combined plot above, for comparability
+make_scenario_plot <- function(scenario_code) {
+  ggplot(df_long %>% filter(scenario == scenario_code)) +
+    geom_tile(aes(x = x, y = y, fill = value)) +
+    geom_sf(data = coastline, color = "grey30", linewidth = 0.25, inherit.aes = FALSE) +
+    facet_wrap(~ forest_type, ncol = 2) +
+    scale_fill_distiller(
+      palette  = "RdYlBu",
+      direction = 1,
+      limits   = value_limits,
+      oob      = scales::squish,
+      na.value = NA,
+      name     = expression(Delta*"value")
+    ) +
+    coord_sf(expand = FALSE, xlim = c(-180, 180), ylim = c(-90, 90)) +
+    theme_void() +
+    theme(
+      legend.position    = "bottom",
+      legend.key.width   = unit(2, "cm"),
+      legend.key.height  = unit(0.3, "cm"),
+      legend.text        = element_text(size = 7),
+      legend.title       = element_text(size = 9),
+      strip.text         = element_text(size = 11, face = "bold")
+    ) +
+    ggtitle(scenario_code)
+}
+```
+
+```{r}
+plot_NfN <- make_scenario_plot("NfN")
+plot_NfN
+plot_NaC <- make_scenario_plot("NaC")
+plot_NaC
+plot_NfS <- make_scenario_plot("NfS")
+plot_NfS
+plot_BAU <- make_scenario_plot("BAU")
+plot_BAU
+```
+```{r}
+global(rasters$`ssdelta_nonforest_BAU_GLOBIO_2020-2027`, fun = "mean", na.rm = TRUE)
+summary(rasters$`ssdelta_forest_NfN_GLOBIO_2020-2027`, na.rm = TRUE)
+```
+
