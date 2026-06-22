@@ -1,0 +1,282 @@
+---
+title: "PLUM (Alexander/LandSyMM) Land Cover - Extract GeoTIFFs from EBV NetCDF"
+author: "Andres Marmol Guijarro"
+date: "2026-06-21"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    theme: flatly
+    highlight: tango
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE, message = FALSE, warning = FALSE)
+```
+
+# Overview
+
+This notebook extracts all entity / scenario / timestep slices from the
+PLUM (LandSyMM-PLUM, Peter Alexander) EBV Cube NetCDF
+(`alexander_ecostr_id99_20260217.nc`) and writes each one out as a
+single-band GeoTIFF at native resolution (0.01°, ~1 km).
+
+The source cube classifies land cover according to the **HILDA+**
+classification (harmonised to 7 of the 10 original HILDA+ classes):
+urban, cropland, pasture, forest managed, forest unmanaged,
+grass/shrubland, and other land. Values are binary (0/1) per pixel —
+each entity layer records whether that land-cover type occurs in a
+given cell, for a given scenario and timestep.
+
+Output naming follows the same `entity_XX` convention used in the
+GLOBIO downscaling notebook, so the next notebook
+(`...coarsen-to-0.5deg...Rmd`) can reuse the same aggregation logic
+with minimal changes:
+
+```
+<out_root>/<scenario>/<year>/entity_<NN>_native.tif
+```
+
+------------------------------------------------------------------------
+
+## 1. Load libraries
+
+```{r libraries}
+rm(list = ls())
+gc()
+
+library(terra)
+library(here)
+library(stringr)
+library(ebvcube)
+
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+```
+
+------------------------------------------------------------------------
+
+## 2. Configure temporary raster storage
+
+```{r temp-storage}
+local_temp <- "../temp"
+dir.create(local_temp, showWarnings = FALSE, recursive = TRUE)
+
+terraOptions(
+  todisk  = TRUE,
+  memfrac = 0.3,
+  tempdir = local_temp
+)
+
+cat("Local temporary folder:", local_temp, "\n")
+```
+
+------------------------------------------------------------------------
+
+## 3. Define paths
+
+```{r paths}
+# Path to the source EBV Cube NetCDF
+nc_in <- here("Data_geo", "land_use", "PLUM", "cubes",
+              "alexander_ecostr_id99_20260217.nc")
+
+stopifnot(file.exists(nc_in))
+
+# Root folder where extracted native-resolution GeoTIFFs will be written
+out_root <- here("preprocessed", "PLUM_alexander", "0.01deg_native")
+dir.create(out_root, showWarnings = FALSE, recursive = TRUE)
+
+cat("Input NetCDF:", nc_in, "\n")
+cat("Output root: ", out_root, "\n")
+```
+
+------------------------------------------------------------------------
+
+## 4. Inspect cube structure
+
+Before extracting, confirm the scenario, entity, and time structure of
+the cube. This avoids hard-coding values that may not match the file.
+
+```{r inspect}
+library(ebvcube)
+
+cubepaths <- ebv_datacubepaths(nc_in, verbose = FALSE)
+print(cubepaths)
+
+props <- ebv_properties(nc_in, scenario = 1, metric = 1, verbose = FALSE)
+print(props@spatial)
+
+entities  <- props@general$entity_names
+timesteps <- props@temporal$timesteps
+
+cat("Entities: ",  paste(entities, collapse = ", "), "\n")
+cat("Timesteps:",  paste(timesteps, collapse = ", "), "\n")
+cat("Scenarios:",  paste(unique(cubepaths$scenario_names), collapse = ", "), "\n")
+```
+
+------------------------------------------------------------------------
+
+## 5. Define scenarios, entities, and years to extract
+
+These are read from the cube directly in the previous step, but pinned
+here explicitly so the extraction loop is transparent and reproducible
+even if the cube changes later.
+
+```{r settings}
+scenarios <- c("NfN", "NfNl", "NaC", "NfS", "BAU")
+
+# Entity order as it appears in the NetCDF (HILDA+ harmonised classes)
+entities <- c(
+  "Urban",
+  "Cropland",
+  "Pasture",
+  "Forest managed",
+  "Forest unmanaged",
+  "Grass/shrubland",
+  "Other land"
+)
+
+# Years available in the cube (decadal timesteps, 2020-2070)
+years <- c("2020", "2030", "2050", "2070")
+
+cat("Scenarios:", paste(scenarios, collapse = ", "), "\n")
+cat("Entities: ", paste(entities, collapse = ", "), "\n")
+cat("Years:    ", paste(years, collapse = ", "), "\n")
+```
+
+------------------------------------------------------------------------
+
+# 6. Extraction loop
+
+For each scenario, timestep, and entity, this reads the corresponding
+2D slice from the NetCDF via `ebv_read()` and writes it out as a
+single-band native-resolution GeoTIFF.
+
+```{r extraction-loop}
+total_iter   <- length(scenarios) * length(years) * length(entities)
+current_iter <- 0
+pb <- txtProgressBar(min = 0, max = total_iter, style = 3)
+t_start <- proc.time()
+
+created <- character()
+errors  <- character()
+
+for (sc in scenarios) {
+
+  for (yr in years) {
+
+    out_dir <- file.path(out_root, sc, yr)
+    dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+
+    for (e_no in seq_along(entities)) {
+
+      ent <- entities[e_no]
+
+      out_file <- file.path(
+        out_dir,
+        sprintf("entity_%02d_native.tif", e_no)
+      )
+
+      res_extract <- tryCatch({
+
+        r <- ebv_read(
+          filepath     = nc_in,
+          datacubepath = NULL,
+          entity       = ent,
+          timestep     = which(years == yr),
+          type         = "r",
+          scenario     = sc,
+          metric       = 1
+        )
+
+        names(r) <- ent
+
+        writeRaster(
+          r,
+          out_file,
+          datatype  = "INT1U",
+          overwrite = TRUE,
+          wopt      = list(gdal = c("COMPRESS=DEFLATE"))
+        )
+
+        rm(r)
+        gc()
+        out_file
+
+      }, error = function(e) e)
+
+      if (inherits(res_extract, "error")) {
+        msg <- paste("FAILED | scenario:", sc, "year:", yr,
+                     "entity:", ent, "|", conditionMessage(res_extract))
+        errors <- c(errors, msg)
+        warning(msg)
+      } else {
+        created <- c(created, res_extract)
+      }
+
+      current_iter <- current_iter + 1
+      setTxtProgressBar(pb, current_iter)
+    }
+  }
+}
+
+close(pb)
+t_total <- (proc.time() - t_start)["elapsed"]
+
+cat("\nExtraction completed in", round(t_total / 60, 2), "minutes.\n")
+cat("Created:", length(created), "\n")
+cat("Failed: ", length(errors),  "\n")
+if (length(errors) > 0) print(head(errors, 10))
+```
+
+------------------------------------------------------------------------
+
+## 7. Expected output structure
+
+```
+0.01deg_native/
+├── NfN/
+│   ├── 2020/
+│   │   ├── entity_01_native.tif   # urban
+│   │   ├── entity_02_native.tif   # cropland
+│   │   ├── ...
+│   │   └── entity_07_native.tif   # other land
+│   ├── 2030/
+│   └── ...
+├── NfNl/
+├── NaC/
+├── NfS/
+└── BAU/
+```
+
+Each `.tif` is single-band, binary (0/1), at the native resolution of
+the source cube (0.01°, EPSG:4326).
+
+------------------------------------------------------------------------
+
+## 8. Diagnostic: spot-check one extracted raster
+
+Run this independently to confirm an extracted raster matches the
+source cube.
+
+```{r diagnostic, eval=FALSE}
+check_file <- file.path(out_root, "BAU", "2020", "entity_01_native.tif")
+
+r_check <- rast(check_file)
+r_check
+plot(r_check, main = "BAU 2020 - urban (entity_01)")
+
+cat("Unique values:", paste(unique(values(r_check, mat = FALSE)), collapse = ", "), "\n")
+```
+
+------------------------------------------------------------------------
+
+## Common errors
+
+| Error | Likely cause | Fix |
+|---|---|---|
+| `file.exists(nc_in)` fails | SSD/network drive not mounted, or path changed | Verify `/Volumes/AM_SSD/...` is mounted; adjust `here()` root |
+| `ebv_read()` entity not found | Entity name string doesn't match cube exactly | Check `ebv_entities(nc_in)` for exact spelling/case |
+| Missing `rhdf5` package | Bioconductor dependency not installed | `BiocManager::install("rhdf5")` |
+| Slow extraction | Reading from spinning/network disk | Copy `.nc` to local SSD before running |

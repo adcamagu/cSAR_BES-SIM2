@@ -2,3 +2,20 @@
 .Rhistory
 .RData
 .Ruserdata
+
+
+
+# Large data files — never push to GitHub
+*.nc
+
+# Preprocessed rasters and outputs
+preprocessed/
+temp/
+
+# R session artifacts
+.Rhistory
+.RData
+.Rproj.user/
+
+# Rendered notebook outputs
+*.html

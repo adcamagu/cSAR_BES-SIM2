@@ -1,0 +1,489 @@
+---
+title: "PLUM (Alexander/LandSyMM) Land Cover - Coarsen to 0.5deg and Build EBV Cube"
+author: "Andres Marmol Guijarro"
+date: "2026-06-21"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    theme: flatly
+    highlight: tango
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE, message = FALSE, warning = FALSE)
+```
+
+# 1. Introduction
+
+This workflow takes the native-resolution (0.01°, binary 0/1) PLUM
+land-cover GeoTIFFs produced by the extraction notebook
+(`...PLUM-Alexander__extract-tiffs-from-NetCDF...Rmd`) and aggregates
+them to a coarser **0.5° resolution**, then writes the result into a
+new EBV Cube NetCDF — following the same structure used in the GLOBIO
+downscaling/aggregation workflow.
+
+The aggregation method matches what was used for GLOBIO: for each
+0.5° grid cell, the workflow **counts the number of native 0.01°
+pixels** that fall within it and **counts how many of those pixels
+are land-cover = 1**, then derives the *proportion of pixels with
+that land cover* as `n_pixels_landcover / n_pixels_total`. This is
+computed efficiently via `terra::aggregate(fun = mean)` on the binary
+layer, since the mean of a 0/1 layer is mathematically identical to
+that pixel proportion — but expressed here as an explicit pixel-count
+ratio for clarity.
+
+Two core steps:
+
+1.  *Aggregate the native 0.01° rasters to 0.5°*\
+    The original PLUM/HILDA+ rasters have a spatial resolution of
+    0.01° (~1 km at the equator). Each 0.5° output cell is computed as
+    the proportion of native pixels classified as that land-cover
+    entity within the coarse cell footprint.
+
+2.  *Build and populate a new EBV Cube NetCDF at 0.5°*\
+    The aggregated rasters are inserted into a new EBV-compliant
+    NetCDF, structured by scenario, metric, time step, and entity —
+    matching the structure of the source cube
+    (`alexander_ecostr_id99_20260217.nc`).
+
+The 0.5° raster template explicitly spans the **full global extent**
+(-180/180 lon, -90/90 lat), matching the GLOBIO 0.5° template and
+ensuring Antarctica is retained even if some native input tiles are
+sparse or all-NA at high southern latitudes.
+
+------------------------------------------------------------------------
+
+## 1.1 PLUM scenarios and time steps
+
+| **Scenario** | **Abbreviation** | **Available Years** |
+|---|---|---|
+| Business as Usual SSP2 RCP4.5 | BAU | 2020, 2030, 2050, 2070 |
+| Nature as Culture RCP4.5 | NaC | 2020, 2030, 2050, 2070 |
+| Nature for Society RCP4.5 | NfS | 2020, 2030, 2050, 2070 |
+| Nature for Nature RCP4.5 | NfN | 2020, 2030, 2050, 2070 |
+| Nature for Nature (local) RCP4.5 | NfNl | 2020, 2030, 2050, 2070 |
+
+## 1.2 Entities (HILDA+ harmonised classes)
+
+7 of the 10 original HILDA+ classes (oceans, water, and no-data
+excluded):
+
+1.  urban
+2.  cropland
+3.  pasture
+4.  forest managed
+5.  forest unmanaged
+6.  grass/shrubland
+7.  other land
+
+## 1.3 Before you start
+
+-   The extraction notebook has already been run, and native-resolution
+    `entity_XX_native.tif` files exist under `0.01deg_native/<scenario>/<year>/`.
+-   The `metadata.json` file for this EBV dataset exists.
+-   Sufficient temporary disk space is available for raster aggregation.
+-   The `ebvcube` package is installed and working correctly.
+
+------------------------------------------------------------------------
+
+## 2. Load libraries
+
+```{r libraries}
+rm(list = ls())
+gc()
+
+library(terra)
+library(ebvcube)
+library(here)
+library(stringr)
+library(dplyr)
+```
+
+------------------------------------------------------------------------
+
+## 3. Configure temporary raster storage
+
+```{r temp-storage}
+local_temp <- "D:/temp"
+dir.create(local_temp, showWarnings = FALSE, recursive = TRUE)
+
+terraOptions(
+  todisk  = TRUE,
+  memfrac = 0.3,
+  tempdir = local_temp
+)
+
+cat("Local temporary folder:", local_temp, "\n")
+```
+
+------------------------------------------------------------------------
+
+## 4. Define input and output paths
+
+```{r paths}
+in_root  <- here("preprocessed", "PLUM_alexander", "0.01deg_native")
+out_root <- here("preprocessed", "PLUM_alexander", "0.5deg")
+dir.create(out_root, showWarnings = FALSE, recursive = TRUE)
+
+cat("Input root: ", in_root, "\n")
+cat("Output root:", out_root, "\n")
+```
+
+------------------------------------------------------------------------
+
+## 5. Define workflow settings
+
+```{r settings}
+id        <- 99
+years     <- c(2020, 2030, 2050, 2070)
+scenarios <- c("NfN", "NfNl", "NaC", "NfS", "BAU")
+
+entities <- c(
+  "urban",
+  "cropland",
+  "pasture",
+  "forest managed",
+  "forest unmanaged",
+  "grass/shrubland",
+  "other land"
+)
+
+n_entities <- length(entities)
+
+cat("ID:", id, "\n")
+cat("Years:", paste(years, collapse = ", "), "\n")
+cat("Scenarios:", paste(scenarios, collapse = ", "), "\n")
+cat("Entities:", paste(entities, collapse = ", "), "\n")
+```
+
+------------------------------------------------------------------------
+
+## 6. Build the 0.5° global raster template
+
+This template defines the target grid for aggregation. It is forced to
+the **full global extent** (-180/180, -90/90) regardless of the input
+data's actual extent, so Antarctica and any sparse/empty high-latitude
+tiles are preserved as NA rather than silently dropped.
+
+```{r template}
+target_deg <- 0.5
+
+r_template <- rast(
+  xmin = -180, xmax = 180,
+  ymin = -90,  ymax = 90,
+  resolution = target_deg,
+  crs = "EPSG:4326"
+)
+
+r_template
+
+cube_extent <- as.vector(ext(r_template))
+cube_res    <- res(r_template)
+epsg        <- 4326
+
+cat("Target resolution:", target_deg, "degrees\n")
+cat("Target extent (xmin, xmax, ymin, ymax):", cube_extent, "\n")
+```
+
+------------------------------------------------------------------------
+
+# 7. Aggregation to 0.5° resolution
+
+For each scenario, year, and entity, this section:
+
+1.  reads the native 0.01° binary GeoTIFF,
+2.  aggregates it to 0.5° using the **mean** of the binary 0/1 values
+    within each coarse cell — i.e. `n_pixels_landcover / n_pixels_total`,
+3.  resamples/matches the result onto the fixed global 0.5° template so
+    every output raster shares an identical extent (including
+    Antarctica), and
+4.  writes the result as a proportional-cover GeoTIFF.
+
+```{r aggregation-loop}
+total_iter   <- length(scenarios) * length(years) * n_entities
+current_iter <- 0
+pb <- txtProgressBar(min = 0, max = total_iter, style = 3)
+t_start <- proc.time()
+
+created <- character()
+errors  <- character()
+
+for (sc in scenarios) {
+
+  for (yr in years) {
+
+    in_dir  <- file.path(in_root, sc, as.character(yr))
+    out_dir <- file.path(out_root, sc, as.character(yr))
+    dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+
+    cat("\n==========", sc, yr, "==========\n")
+
+    for (e_no in seq_len(n_entities)) {
+
+      tif_in <- file.path(in_dir, sprintf("entity_%02d_native.tif", e_no))
+
+      if (!file.exists(tif_in)) {
+        msg <- paste("Missing native file:", tif_in)
+        errors <- c(errors, msg)
+        warning(msg)
+        current_iter <- current_iter + 1
+        setTxtProgressBar(pb, current_iter)
+        next
+      }
+
+      res_agg <- tryCatch({
+
+        r <- rast(tif_in)
+
+        # fact = how many native pixels fall along each axis of one
+        # 0.5 deg coarse cell (native res is ~0.01 deg)
+        fact <- target_deg / res(r)[1]
+
+        # Aggregate - count of land-cover pixels / total pixels per
+        # coarse cell, via mean() of the binary (0/1) layer
+        r_d <- aggregate(
+          r,
+          fact   = fact,
+          fun    = mean,
+          na.rm  = TRUE
+        )
+
+        # Snap/extend onto the fixed global template so every output
+        # raster shares an identical grid, including Antarctica
+        r_d <- extend(r_d, r_template)
+        r_d <- resample(r_d, r_template, method = "near")
+
+        names(r_d) <- entities[e_no]
+
+        out_file <- file.path(out_dir, sprintf("entity_%02d_p05.tif", e_no))
+
+        writeRaster(
+          r_d,
+          out_file,
+          datatype  = "FLT4S",
+          overwrite = TRUE,
+          wopt      = list(gdal = c("COMPRESS=DEFLATE"))
+        )
+
+        rm(r, r_d)
+        gc()
+        out_file
+
+      }, error = function(e) e)
+
+      if (inherits(res_agg, "error")) {
+        msg <- paste("FAILED | scenario:", sc, "year:", yr,
+                     "entity:", entities[e_no], "|", conditionMessage(res_agg))
+        errors <- c(errors, msg)
+        warning(msg)
+      } else {
+        created <- c(created, res_agg)
+      }
+
+      current_iter <- current_iter + 1
+      setTxtProgressBar(pb, current_iter)
+    }
+  }
+}
+
+close(pb)
+t_total <- (proc.time() - t_start)["elapsed"]
+
+cat("\nAggregation completed in", round(t_total / 60, 2), "minutes.\n")
+cat("Created:", length(created), "\n")
+cat("Failed: ", length(errors),  "\n")
+if (length(errors) > 0) print(head(errors, 10))
+```
+
+------------------------------------------------------------------------
+
+## 7.1 Diagnostic: confirm aggregation matches expectation
+
+```{r diagnostic-agg, eval=FALSE}
+check_file <- file.path(out_root, "BAU", "2020", "entity_01_p05.tif")
+
+r_check <- rast(check_file)
+r_check
+plot(r_check, main = "BAU 2020 - urban proportional cover (0.5 deg)")
+
+cat("Value range:", paste(round(range(values(r_check, mat = FALSE), na.rm = TRUE), 4),
+                          collapse = " to "), "\n")
+cat("Extent matches template:", identical(ext(r_check), ext(r_template)), "\n")
+```
+
+------------------------------------------------------------------------
+
+# 8. Create the EBV Cube NetCDF file
+
+## 8.1 Define paths
+
+```{r nc-paths}
+creation_date <- format(Sys.Date(), "%Y%m%d")
+cat("Created date:", creation_date, "\n")
+cat("ID:", id, "\n")
+
+json_root <- here("json")
+js <- file.path(json_root, paste0("metadata_", id, ".json"))
+
+# Naming convention: "<first_author>_<ebv_class>_id<ID>_<YYYYMMDD>.nc"
+nc_out <- here("Data_geo", "land_use", "PLUM", "cubes",
+               paste0("alexander_ecostr_id", id, "_", creation_date, "_p05.nc"))
+
+cat("EBV Cube NetCDF file name:", basename(nc_out), "\n")
+cat("Aggregated raster root:   ", out_root, "\n")
+
+stopifnot(file.exists(js))
+
+tif_files <- list.files(out_root, pattern = "\\.tif$", recursive = TRUE, full.names = TRUE)
+cat("Total aggregated GeoTIFF files found:", length(tif_files), "\n")
+```
+
+## 8.2 Define EBV Cube structure
+
+```{r nc-structure}
+cat("Entity variable\n")
+cat("=======================\n")
+cat("Entity names:", paste(entities, collapse = ", "), "\n")
+cat("Entities number:", n_entities, "\n")
+
+# Spatial settings come from the fixed global template (Section 6),
+# not from any single input raster, so the cube always covers the
+# full globe including Antarctica
+list(
+  timesteps = years,
+  extent    = cube_extent,
+  res       = cube_res,
+  epsg      = epsg
+)
+
+# Fill value and datatype (proportional cover, not binary)
+fillvalue <- -3.4e+38
+prec      <- "float"
+```
+
+## 8.3 Create empty NetCDF file
+
+```{r create-cube}
+timesteps <- as.character(years)
+
+ebv_create(
+  jsonpath   = js,
+  outputpath = nc_out,
+  entities   = entities,
+  epsg       = epsg,
+  extent     = cube_extent,
+  resolution = cube_res,
+  timesteps  = timesteps,
+  fillvalue  = fillvalue,
+  prec       = prec,
+  force_4D   = TRUE,
+  overwrite  = TRUE,
+  verbose    = TRUE
+)
+
+# QC: inspect cube structure - should show 5 scenarios x 1 metric x 7 entities
+dc_new <- ebv_datacubepaths(nc_out, verbose = FALSE)
+print(dc_new)
+
+# QC: spatial properties
+prop <- ebv_properties(nc_out, scenario = 1, metric = 1, verbose = FALSE)
+print(prop@spatial)
+```
+
+> The JSON file must define the entities and metric exactly as listed
+> above. Verify this before running `ebv_create()`.
+
+------------------------------------------------------------------------
+
+# 9. Populate the EBV Cube
+
+```{r insert-data}
+metric_no <- 1
+
+start_time <- Sys.time()
+
+for (s_no in seq_along(scenarios)) {
+
+  sc <- scenarios[s_no]
+
+  for (t_no in seq_along(years)) {
+
+    yr <- years[t_no]
+    in_dir <- file.path(out_root, sc, as.character(yr))
+
+    cat("\n=== INSERT | scenario:", sc, "| year:", yr, "===\n")
+
+    if (!dir.exists(in_dir)) {
+      warning("Input directory does not exist: ", in_dir)
+      next
+    }
+
+    for (e_no in seq_len(n_entities)) {
+
+      tif_in <- file.path(in_dir, sprintf("entity_%02d_p05.tif", e_no))
+
+      if (!file.exists(tif_in)) {
+        warning("Missing aggregated file: ", tif_in)
+        next
+      }
+
+      ebv_add_data(
+        filepath_nc = nc_out,
+        data        = tif_in,
+        scenario    = s_no,
+        metric      = metric_no,
+        entity      = e_no,
+        timestep    = t_no,
+        ignore_RAM  = FALSE,
+        raw         = FALSE,
+        verbose     = FALSE
+      )
+
+      gc(verbose = FALSE)
+      cat("  inserted entity", e_no, "(", entities[e_no], ")\n")
+    }
+  }
+}
+
+end_time   <- Sys.time()
+time_taken <- end_time - start_time
+print(time_taken)
+
+cat("\nDONE. All aggregated entities inserted into:\n", nc_out, "\n")
+```
+
+------------------------------------------------------------------------
+
+## 10. Final check
+
+```{r final-check, eval=FALSE}
+mycube <- ebv_read(
+  filepath     = nc_out,
+  datacubepath = NULL,
+  entity       = "urban",
+  timestep     = 1,
+  type         = "r",
+  scenario     = "BAU",
+  metric       = 1
+)
+
+terra::plot(mycube, main = "BAU 2020 - urban proportional cover (0.5 deg)")
+
+ebv_properties(nc_out)
+ebv_entities(nc_out)
+ebv_timesteps(nc_out)
+```
+
+------------------------------------------------------------------------
+
+## Common errors
+
+| Error | Likely cause | Fix |
+|---|---|---|
+| Missing native file warnings | Extraction notebook not run, or `id`/path mismatch | Run extraction notebook first; verify `in_root` |
+| Extent mismatch after aggregation | Native tile doesn't span the full globe | `extend()` + `resample()` step in Section 7 handles this onto the fixed template |
+| `ebv_create()` fails on entities | JSON metadata entity list doesn't match `entities` vector exactly | Check `metadata_<id>.json` entity names/order |
+| Aggregated values outside [0,1] | Native raster isn't strictly binary 0/1 | Check `entity_XX_native.tif` values before aggregating |
