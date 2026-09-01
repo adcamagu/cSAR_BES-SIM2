@@ -72,7 +72,7 @@ cat("Extent:    ",    globio05@spatial$extent,   "\n")
 Working with the NfN scenario (`globio05_paths[1, 1]`). Change the row index to switch scenario. Available scenarios: NfN [1,1] \| NaC [2,1] \| NfS [3,1] \| BAU [4,1]
 
 ```{r area-conversion}
-dc_path <- globio05_paths[1, 1]   
+dc_path <- globio05_paths[4, 1]   
 
 # Pixel-area raster — latitude-varying, built once
 pixel_area_km2 <- cellSize(
@@ -247,7 +247,7 @@ defining the timesteps for comparison
 
 ```{r}
 t0_label <- "2020"
-t1_label <- "2070"
+t1_label <- "2050"
 ```
 
 # 5. Relative change in species richness at the local scale (gridcell)
@@ -508,16 +508,16 @@ Following this convention to save the name = deltas\_<scenario><LU projection><d
 ```{r}
 #convention to save the name = areas_<scenario><LU projection><date>.csv  /  rdelta_<scenario><LU projection><date>.csv
 
-#write.csv(globio_zonal_totals_wide, "../BES_results/results_biodiversity/cSAR_iDiv/areas_NfN_GLOBIO_18062026.csv")
-#write.csv(rdelta_zonal_df,      "../BES_results/results_biodiversity/cSAR_iDiv/rdelta_NfN_GLOBIO_18062026.csv")
+write.csv(globio_zonal_totals_wide, "../BES_results/results_biodiversity/cSAR_iDiv/areas_SSP2RCP6_GLOBIO_2020-2050_23062026.csv")
+write.csv(rdelta_zonal_df,      "../BES_results/results_biodiversity/cSAR_iDiv/rdelta_SSP2RCP6_GLOBIO_2020-2050_23062026.csv")
 ```
 
 ## 8.2 Results as rasters (local estimates)
 
 ```{r}
 #for forest species
-#writeRaster(rdelta_rasters$Forest, "../BES_results/results_biodiversity/cSAR_iDiv/rasters/ssdelta_forest_NfN_GLOBIO_2020-2027.tif", datatype= "FLT4S", NAflag=-9999, overwrite=TRUE)
+writeRaster(rdelta_rasters$Forest, "../BES_results/results_biodiversity/cSAR_iDiv/rasters/ssdelta_forest_SSP2RCP6_GLOBIO_2020-2050.tif", datatype= "FLT4S", NAflag=-9999, overwrite=TRUE)
 
 # for non-forest species
-#writeRaster(rdelta_rasters$Non_Forest, "../BES_results/results_biodiversity/cSAR_iDiv/rasters/ssdelta_nonforest_NfN_GLOBIO_2020-2027.tif", datatype= "FLT4S", NAflag=-9999, overwrite=TRUE)
+writeRaster(rdelta_rasters$Non_Forest, "../BES_results/results_biodiversity/cSAR_iDiv/rasters/ssdelta_nonforest_SSP2RCP6_GLOBIO_2020-2050.tif", datatype= "FLT4S", NAflag=-9999, overwrite=TRUE)
 ```

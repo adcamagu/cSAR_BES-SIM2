@@ -170,7 +170,7 @@ pixel covered by a target class.
 ```{r}
 # Select scenario by NAME, not row index — robust across models with
 # different scenario counts/labels. Change scenario_choice to switch.
-scenario_choice <- "Nature for Society"   # must match a value in cube_paths$scenario_names
+scenario_choice <- "SSP2 RCP 6.0"   # must match a value in cube_paths$scenario_names
 
 scenario_row <- cube_paths[cube_paths$scenario_names == scenario_choice, ]
 stopifnot(nrow(scenario_row) == 1)
@@ -362,13 +362,13 @@ ggplot(pv_df) +
 
 # ── Alternative B: binned/quantile scale, styled after the reference figure ─
 
-breaks_b <- c(min(pv_df$pct_change, na.rm = TRUE), -3.08, -1.16, -0.32, -0.30, -0.2, -0.1, -0.05, -0.01, 0)
+breaks_b <- c(min(pv_df$pct_change, na.rm = TRUE), -0.2, -0.1, -0.05, -0.02, -0.01, 0)
 
 reds_colors <- RColorBrewer::brewer.pal(9, "Reds")  # adjust n to match your number of bins
 reds_colors <- rev(reds_colors)  
 reds_colors[length(reds_colors)] <- "#FFF7BC" 
 
-ggplot(pv_df) +
+b <- ggplot(pv_df) +
   geom_tile(aes(x = x, y = y, fill = pct_change)) +
   geom_sf(data = coastline, color = "grey30", linewidth = 0.1, inherit.aes = FALSE) +
   
@@ -389,20 +389,61 @@ ggplot(pv_df) +
 #    name     = "percentage points per decade"
 #  ) +
   coord_sf(expand = FALSE, xlim = c(-180, 180), ylim = c(-90, 90)) +
-  labs(title = paste0("Δ ", t0_label, "–", t1_label)) +
+  labs(title = paste0("Δ ", t0_label, "–", t1_label, " SSP2 RCP 6.0")) +
   theme_void() +
   theme(
     legend.position   = "bottom",
     legend.key.width  = unit(1.4, "cm"),
     legend.key.height = unit(0.3, "cm")
   )
+
+b
 ```
 diagnose for the distribution of points in the plot?
 
 ```{r}
-breaks_b <- c(min(pv_df$pct_change, na.rm = TRUE), -3.08, -1.16, -0.32, -0.30, -0.2, -0.1, -0.05, -0.01, 0)
+#breaks_b <- c(min(pv_df$pct_change, na.rm = TRUE), -3.08, -1.16, -0.32, -0.30, -0.2, -0.1, -0.05, -0.01, 0)
 
+#table(cut(pv_df$pct_change, breaks = sort(unique(breaks_b))))
+```
+NOTE: to apply to SSP2 RCP6.
+
+The problem is a mismatch between the number of colors and the number of bins. You have 6 breaks, which creates 5 bins (plus the out-of-range bin below the minimum), but brewer.pal(9, "Reds") gives you 9 colors. scale_fill_stepsn() interpolates across all 9 colors to fill however many bins exist — so the yellow (#FFF7BC) at position 9 gets compressed into a barely-visible sliver or disappears entirely because the interpolation never reaches the last stop.
+Fix — match the number of colors to the number of bins:
+
+```{r}
+breaks_b <- c(min(pv_df$pct_change, na.rm = TRUE), -0.2, -0.1, -0.05, -0.02, -0.01, 0)
 table(cut(pv_df$pct_change, breaks = sort(unique(breaks_b))))
+```
+
+```{r}
+breaks_b <- c(-3.08, -1.16, -0.32, -0.30, -0.2, -0.1, -0.05, -0.01, 0)
+
+n_colors <- length(breaks_b) + 1   # = 10
+
+reds_colors <- RColorBrewer::brewer.pal(n_colors, "Reds")
+reds_colors <- rev(reds_colors)
+reds_colors[length(reds_colors)] <- "#FFF7BC"
+
+ggplot(pv_df) +
+  geom_tile(aes(x = x, y = y, fill = pct_change)) +
+  geom_sf(data = coastline, color = "grey30", linewidth = 0.1, inherit.aes = FALSE) +
+  scale_fill_stepsn(
+    colors   = reds_colors,
+    breaks   = breaks_b,
+    limits   = c(min(pv_df$pct_change, na.rm = TRUE), 0),
+    labels   = round(breaks_b, 2),
+    na.value = NA,
+    name     = "percentage points per decade"
+  ) +
+  coord_sf(expand = FALSE, xlim = c(-180, 180), ylim = c(-90, 90)) +
+  labs(title = paste0("Δ ", t0_label, "–", t1_label, " SSP2 RCP 6.0")) +
+  theme_void() +
+  theme(
+    legend.position   = "bottom",
+    legend.key.width  = unit(1.4, "cm"),
+    legend.key.height = unit(0.3, "cm")
+  )
 ```
 
 
@@ -427,7 +468,7 @@ print(table(cut(pv_pct_df$pct, breaks = sort(unique(breaks_dist)))))
 # Diverging brown -> blue palette (BrBG)
 brbg_colors <- RColorBrewer::brewer.pal(length(unique(breaks_dist)) - 1, "BrBG")
 
-ggplot(pv_pct_df) +
+a <- ggplot(pv_pct_df) +
   geom_tile(aes(x = x, y = y, fill = pct)) +
   geom_sf(data = coastline, color = "grey30", linewidth = 0.1, inherit.aes = FALSE) +
   scale_fill_stepsn(
@@ -447,6 +488,8 @@ ggplot(pv_pct_df) +
     legend.key.height  = unit(0.3, "cm"),
     plot.title         = element_text(size = 14, face = "bold", hjust = 0)
   )
+
+a
 ```
 ```{r}
 # Quantile-based breaks — each bin gets roughly equal pixel count

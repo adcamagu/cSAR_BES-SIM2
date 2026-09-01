@@ -19,13 +19,16 @@ setwd(dirname(rstudioapi::getSourceEditorContext()$path))
 ```{r}
 # List all raster files in the project folder and subfolders
 file_paths <- list.files(
-   path = "../BES_results/",
-   pattern = "\\.tif$",
-   recursive = TRUE,
-   full.names = TRUE,
-   ignore.case = TRUE
+  path = "../BES_results/",
+  pattern = "\\.tif$",
+  recursive = TRUE,
+  full.names = TRUE,
+  ignore.case = TRUE
 )
-file_paths
+
+file_paths <- file_paths[grepl("2020-2050", file_paths)]  # reassign!
+file_paths  # inspect
+
 rasters <- rast(file_paths)
 ```
 
@@ -56,12 +59,12 @@ df_long <- tidyr::pivot_longer(
 df_long <- df_long %>%
   mutate(
     forest_type = str_extract(layer, "nonforest|forest"),
-    scenario    = str_extract(layer, "BAU|NaC|NfN|NfS")
+    scenario    = str_extract(layer, "SSP2RCP6|NaC|NfN|NfS")
   )
 
 # Set factor order: forest_type controls columns, scenario controls rows
 df_long$forest_type <- factor(df_long$forest_type, levels = c("forest", "nonforest"))
-df_long$scenario <- factor(df_long$scenario, levels = c("NfN", "NaC", "NfS", "BAU"))
+df_long$scenario <- factor(df_long$scenario, levels = c("NfN", "NaC", "NfS", "SSP2RCP6"))
 ```
 
 
@@ -159,7 +162,7 @@ plot_NaC <- make_scenario_plot("NaC")
 plot_NaC
 plot_NfS <- make_scenario_plot("NfS")
 plot_NfS
-plot_BAU <- make_scenario_plot("BAU")
+plot_BAU <- make_scenario_plot("SSP2RCP6")
 plot_BAU
 ```
 ```{r}
