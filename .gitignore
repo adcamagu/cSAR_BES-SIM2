@@ -24,3 +24,7 @@
 
 # Rendered notebook outputs
 *.html
+
+# Generated result rasters and plots (regenerable — interpretation CSVs are kept)
+BES_results/**/rasters/
+BES_results/**/*.png
