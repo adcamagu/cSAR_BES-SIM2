@@ -1,0 +1,128 @@
+---
+title: "06_land_use_Biodiv_plots"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+
+# ── 1. Load and combine ────────────────────────────────────────────────────────
+areas_dir <- "/Volumes/AM_SSD/BES-SIM2_cSAR/cSAR_BES-SIM_2/BES_results/results_biodiversity/cSAR_iDiv/"
+
+areas_paths <- list.files(areas_dir, pattern = "^areas_.*\\.csv$", full.names = TRUE)
+
+# Keep only the most recent run (2020-2050 prefix in name, dated 23062026) to
+# avoid mixing an older 18062026 extraction in with the newer scenario runs
+areas_paths_2050 <- areas_paths[grepl("23062026", areas_paths)]
+
+areas_all <- areas_paths_2050 |>
+  set_names(basename) |>
+  map(\(f) read_csv(f, show_col_types = FALSE)) |>
+  list_rbind(names_to = "filename") |>
+  mutate(
+    parts    = str_split(filename, "_"),
+    scenario = map_chr(parts, 2),   # areas_{scenario}_{model}_{date}.csv
+    # SSP2RCP6 is the 2020-2050 re-run of the Baseline scenario — relabel to BAU
+    # so it lines up with the BAU label used everywhere else
+    scenario = if_else(scenario == "SSP2RCP6", "BAU", scenario),
+    model    = map_chr(parts, 3)
+  ) |>
+  select(-filename, -`...1`, -parts)
+
+# ── 2. Filter Global + pivot long ─────────────────────────────────────────────
+areas_long <- areas_all |>
+  filter(zone_type == "Global") |>
+  pivot_longer(
+    cols      = starts_with("area_"),
+    names_to  = "year",
+    names_prefix = "area_",
+    values_to = "area_km2"
+  ) |>
+  mutate(
+    year     = as.integer(year),
+    scenario = factor(scenario, levels = c("BAU", "NaC", "NfN", "NfS"))
+  )
+
+# ── 3. Plot ───────────────────────────────────────────────────────────────────
+scenario_cols <- c(
+  "BAU"  = "#E63946",
+  "NaC"  = "#457B9D",
+  "NfN"  = "#2A9D8F",
+  "NfS"  = "#E9C46A"
+)
+
+c <- ggplot(areas_long, aes(x = year, y = area_km2 / 1e6, colour = scenario, group = scenario)) +
+  geom_line(linewidth = 0.9) +
+  geom_point(size = 2) +
+  facet_wrap(~ entity, scales = "free_y", ncol = 4) +
+  scale_colour_manual(values = scenario_cols) +
+  scale_x_continuous(breaks = c(2020, 2030, 2050, 2070)) +
+  scale_y_continuous(labels = scales::label_number(suffix = " M")) +
+  labs(
+    title    = "Land-use area trends by entity — GLOBIO",
+    subtitle = "Global zone · area in million km²",
+    x        = NULL,
+    y        = "Area (million km²)",
+    colour   = "Scenario"
+  ) +
+  facet_wrap(~ entity, scales = "free_y", ncol = 3)+
+  theme_bw(base_size = 11) +
+  theme(
+    strip.text       = element_text(face = "bold", size = 9),
+    legend.position  = "bottom",
+    axis.text.x      = element_text(angle = 45, hjust = 1),
+    panel.grid.minor = element_blank()
+  )
+
+c
+
+ggsave(
+  file.path(areas_dir, "trends_entities_GLOBIO_global.png"),
+  width = 14, height = 10, dpi = 200
+)
+```
+# decadal
+
+```{r}
+areas_decadal <- areas_long |>
+  arrange(entity, scenario, year) |>
+  group_by(entity, scenario) |>
+  mutate(
+    area_prev     = lag(area_km2),
+    year_prev     = lag(year),
+    n_decades     = (year - year_prev) / 10,
+    change_per_dec = (area_km2 - area_prev) / (area_prev * n_decades) * 100
+  ) |>
+  ungroup() |>
+  filter(!is.na(change_per_dec))  # drops 2020 (no lag)
+```
+
+```{r}
+ggplot(areas_decadal, aes(x = year, y = change_per_dec, colour = scenario, group = scenario)) +
+  geom_line(linewidth = 0.9) +
+  geom_point(size = 2) +
+  geom_hline(yintercept = 0, linetype = "dashed", colour = "grey40") +
+  facet_wrap(~ entity, scales = "free_y", ncol = 4) +
+  scale_colour_manual(values = scenario_cols) +
+  scale_x_continuous(breaks = c(2030, 2050, 2070)) +
+  labs(
+    title    = "Land-use change per decade by entity — GLOBIO",
+    subtitle = "Global zone · % change per decade relative to previous timestep",
+    x        = NULL,
+    y        = "Change per decade (%)",
+    colour   = "Scenario"
+  ) +
+  theme_bw(base_size = 11) +
+  theme(
+    strip.text       = element_text(face = "bold", size = 9),
+    legend.position  = "bottom",
+    axis.text.x      = element_text(angle = 45, hjust = 1),
+    panel.grid.minor = element_blank()
+  )
+
+ggsave(
+  file.path(areas_dir, "trends_decadal_change_GLOBIO_global.png"),
+  width = 14, height = 10, dpi = 200
+)
+```
+
