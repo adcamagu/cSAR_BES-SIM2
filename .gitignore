@@ -3,7 +3,8 @@
 .RData
 .Ruserdata
 
-
+# macOS metadata files
+._*
 
 # Large data files — never push to GitHub
 *.nc
