@@ -1,6 +1,6 @@
 ---
 title: "GLOBIO_10arcsec_check_19022026"
-author: "Emmanuel Oceguera" "Andres Marmol"
+author: ["Emmanuel Oceguera", "Andres Marmol"]
 date: "2026-02-19"
 output: html_document
 ---
