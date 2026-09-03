@@ -5,7 +5,7 @@
 Andrés Mármol Guijarro, Emmanuel Oceguera & Henrique Pereira. 
 Author list is not definitive yet, and inclusions may occur over the development of the repository.
 
-###Description
+## Description
 This repository containg data and code fore the modelling of land-use impacts on biodiversity for the BES-SIM2 project, using the cSAR-iDiv model to estimate relative change in Species Richness (SS) change under different NFF land-use scenarios (GLOBIO, PLUM and MAgPIE), compared across and IPBES region/subregion classifications.
 
 
@@ -34,7 +34,7 @@ You are free to share and adapt this material for any purpose, even
 commercially, as long as you give appropriate credit, provide a link
 to the license, and indicate if changes were made.
 
-All project data is hosted at iDiv and it is mirrored through NextCloud. NOTE: Continuous password update are needed when working teams are no longer part of BES-SIM 2 (email from Christopher Zimmerman via it-support@idiv.de{.email} on the 23.01.2026 to Andres Mármol).
+All project data is hosted at iDiv and it is mirrored through NextCloud. NOTE: Continuous password update are needed when working teams are no longer part of BES-SIM 2 (email from Christopher Zimmerman via it-support@idiv.deon the 23.01.2026 to Andres Mármol).
 
 ## Repository structure
 
