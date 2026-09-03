@@ -19,7 +19,8 @@ Chronological order, each superseded by the next:
    (previously known as `..._agnostic_3.Rmd` during development) to reuse a
    single fraction read for both the percentage-point and km² outputs
    instead of reading each entity twice. That refined version was renamed to
-   `4_land_use_changes_agnostic.Rmd` and is now the active notebook in
+   `4_land_use_changes_agnostic.Rmd`, later renumbered to
+   `04_land_use_changes_agnostic.Rmd`, and is now the active notebook in
    `analyses/`.
 
 ## Dated snapshots
