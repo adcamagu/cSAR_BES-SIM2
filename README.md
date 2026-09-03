@@ -65,10 +65,9 @@ outputs, preprocessed rasters, scratch caches) are excluded from version control
 1. `01_estimating_LU_change.Rmd` — estimate land-use change from the input cubes
 2. `02_exploratory_code_h_sigma.Rmd` — exploratory analysis of the h/sigma parameters
 3. `03_Delta_species_richness_local_plot.Rmd` — local species-richness change plots
-4. `4_land_use_changes*.Rmd` — land-use change analyses (GLOBIO scenarios, several variants)
-5. `5_land_use_changes_PLUM_Alexander.Rmd` — land-use change analysis, PLUM/Alexander scenarios
-6. `06_land_use_Biodiv_plots.Rmd` — biodiversity outcome plots
-7. `rdelta_comparison_GLOBIO.Rmd` — comparison of results deltas across GLOBIO scenarios
+4. `04_land_use_changes_agnostic.Rmd` — land-use change analyses, config-driven across land-use datasets (GLOBIO EBV cubes, PLUM/HILDA+-harmonised GeoTIFFs)
+5. `05_land_use_Biodiv_plots.Rmd` — biodiversity outcome plots
+6. `06_rdelta_comparison_GLOBIO.Rmd` — comparison of results deltas across GLOBIO scenarios
 
 ## Requirements
 
