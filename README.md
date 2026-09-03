@@ -15,27 +15,6 @@ Version 1.0. 18.06.2026. Repository creation.
 
 Version 1.1. 03.09.2026. Repository curation: Reorganization of folders, addition of readme files and update of notebook analyses.
 
-## License
-
-cSAR-BES-SIM2
-Copyright (C) 2026 BES-SIM2 project
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the [GNUv3.0](https://choosealicense.com/licenses/gpl-3.0/) General Public License as published by
-the Free Software Foundation.
-
-Data and results in this repository (excluding source code, which is
-licensed separately — see LICENSE) are licensed under the Creative
-Commons Attribution 4.0 International License ([CC BY 4.0](http://creativecommons.org/licenses/by/4.0/legalcode)).
-
-Copyright (C) 2026 BES-SIM2 project
-
-You are free to share and adapt this material for any purpose, even
-commercially, as long as you give appropriate credit, provide a link
-to the license, and indicate if changes were made.
-
-All project data is hosted at iDiv and it is mirrored through NextCloud. NOTE: Continuous password update are needed when working teams are no longer part of BES-SIM 2 (email from Christopher Zimmerman via it-support@idiv.deon the 23.01.2026 to Andres Mármol).
-
 ## Repository structure
 
 ```
@@ -91,3 +70,24 @@ to install the exact versions recorded in `renv.lock`.
 ## Data availability
 
 Raw and intermediate geospatial data (land-use cubes, shapefiles) and rendered notebook outputs are not tracked in this repository due to size. Dataset availability is documented in the [BES-SIM2 repository](https://github.com/adcamagu/BES-SIM2). In the future they will be publicly accessible through the [GEO BON EBV Data Portal](https://portal.geobon.org/).
+
+## License
+
+cSAR-BES-SIM2
+Copyright (C) 2026 BES-SIM2 project
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the [GNUv3.0](https://choosealicense.com/licenses/gpl-3.0/) General Public License as published by
+the Free Software Foundation.
+
+Data and results in this repository (excluding source code, which is
+licensed separately — see LICENSE) are licensed under the Creative
+Commons Attribution 4.0 International License ([CC BY 4.0](http://creativecommons.org/licenses/by/4.0/legalcode)).
+
+Copyright (C) 2026 BES-SIM2 project
+
+You are free to share and adapt this material for any purpose, even
+commercially, as long as you give appropriate credit, provide a link
+to the license, and indicate if changes were made.
+
+All project data is hosted at iDiv and it is mirrored through NextCloud. NOTE: Continuous password update are needed when working teams are no longer part of BES-SIM 2 (email from Christopher Zimmerman via it-support@idiv.deon the 23.01.2026 to Andres Mármol).
