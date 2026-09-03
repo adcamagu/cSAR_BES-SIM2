@@ -25,28 +25,11 @@ if (requireNamespace("rstudioapi", quietly = TRUE) &&
 
 # 0. Configuration
 
-The per-model contract — cube/file location, entity → target class mapping,
+The per-model contract — cube file path, entity → target class mapping,
 and which EBVcube metric to consume — lives in
 `../config/category_map.yaml`. Switching models is a single line: set
 `model_key` below to any key declared under `models:` in the YAML. The
 mapping and metric filter follow automatically.
-
-Two input backends are supported, declared per-model via `input_type` in
-the YAML:
-
-- `"ebvcube"` (default if unset) — reads an EBVcube NetCDF via
-  `ebvcube::ebv_read()`. Used by `GLOBIO`, `PLUM`, `ScenMIP`.
-- `"geotiff_dir"` — reads a folder of pre-processed, per-scenario/per-year/
-  per-entity GeoTIFFs via `terra::rast()`. Used by `PLUM_harmonised`
-  (id99, HILDA+-harmonised, coarsened to 0.5°) — this was previously
-  handled by its own notebook, `5_land_use_changes_PLUM_Alexander.Rmd`
-  (now archived), folded in here 2026-09-03.
-
-**TODO / TEMPORARY:** `geotiff_dir` is a stopgap, not the target design. The intent is for every model to ultimately be read from a proper EBV data cube — `PLUM_harmonised` uses `geotiff_dir` only because to accelerate reading processes to provide preliminary outputs for BES-SIM 2 in person meeting 2026. It remains to switch this model to `input_type: ebvcube` in the YAML and the `geotiff_dir` branches below (sections 1, 2, 4.1) can be removed.
-
-Everything downstream of section 4.1 (recategorization, percentage-point
-change, km² conversion, plotting) is identical regardless of backend — only
-the "read fractions for this model" step differs.
 
 ```{r config}
 cfg <- yaml::read_yaml("../config/category_map.yaml")
@@ -58,40 +41,22 @@ model_label <- model_key
 stopifnot(model_key %in% names(cfg$models))
 mcfg <- cfg$models[[model_key]]
 
-# Input backend: "ebvcube" (default) or "geotiff_dir" — see note above
-input_type <- if (!is.null(mcfg$input_type)) mcfg$input_type else "ebvcube"
-
 cat("Active model:   ", model_label, "\n")
-cat("Input type:     ", input_type, "\n")
 cat("Config version: ", cfg$version, "\n")
 ```
 
 # 1. Paths
 
-For `ebvcube` models, the cube file path resolves as
-`paths$data_root + models[[model]]$file` from the YAML. For `geotiff_dir`
-models, `models[[model]]$tif_root` points directly at the folder of
-coarsened GeoTIFFs. The IPBES regions shapefile is discovered by recursive
-search under `data_root` either way (using the pre-simplified version
-produced previously with `simplifyGeom(tolerance = 0.05)`).
+Cube file path resolves as `paths$data_root + models[[model]]$file` from
+the YAML. The IPBES regions shapefile is discovered by recursive search
+under `data_root` (using the pre-simplified version produced previously
+with `simplifyGeom(tolerance = 0.05)`).
 
 ```{r paths}
+cube_path <- file.path(cfg$paths$data_root, mcfg$file)
+stopifnot(file.exists(cube_path))
+
 root_LU_cubes <- cfg$paths$data_root
-
-if (input_type == "ebvcube") {
-
-  cube_path <- file.path(root_LU_cubes, mcfg$file)
-  stopifnot(file.exists(cube_path))
-
-} else if (input_type == "geotiff_dir") {
-
-  # TEMPORARY (see TODO in section 0): GeoTIFF path, not an EBVcube read.
-  tif_root <- mcfg$tif_root
-  stopifnot(dir.exists(tif_root))
-
-} else {
-  stop("Unknown input_type '", input_type, "' for model '", model_key, "'")
-}
 
 ipbes_shp <- list.files(root_LU_cubes, pattern = "\\.shp$",
                         full.names = TRUE, ignore.case = TRUE,
@@ -105,74 +70,47 @@ ipbesred <- vect(ipbes_shp[1])
 plot(ipbesred)
 ```
 
-# 2. Cube/entity metadata
+# 2. Cube metadata and metric filtering
 
-For `ebvcube` models, PLUM (id102) cubes carry three metrics per scenario
-(protected / unprotected / total); other EBVcube models may carry only
-one. The per-model `metric_filter` block in the YAML declares which metric
-path(s) to consume — everything downstream sees only the filtered set.
-Setting `metric_filter: ~` in the YAML disables filtering for that model.
+PLUM cubes carry three metrics per scenario (protected / unprotected /
+total); other models may carry only one. The per-model `metric_filter`
+block in the YAML declares which metric path(s) to consume — everything
+downstream sees only the filtered set.
 
-For `geotiff_dir` models there is no EBVcube metadata to read — entity
-names, scenarios and years come directly from the YAML, and the spatial
-template is read from the first available GeoTIFF.
+For PLUM the filter is `path_pattern: "metric_3/ebv_cube$"`, so the
+five-scenario list collapses from 15 rows to 5 (totals only). Setting
+`metric_filter: ~` in the YAML disables filtering for that model.
 
-```{r metadata}
-if (input_type == "ebvcube") {
+```{r cube-metadata}
+cube_props     <- ebv_properties(cube_path,    verbose = FALSE)
+cube_paths_all <- ebv_datacubepaths(cube_path, verbose = FALSE)
 
-  cube_props     <- ebv_properties(cube_path,    verbose = FALSE)
-  cube_paths_all <- ebv_datacubepaths(cube_path, verbose = FALSE)
-
-  # Apply per-model metric filter
-  cube_paths <- if (!is.null(mcfg$metric_filter$path_pattern)) {
-    cube_paths_all[grepl(mcfg$metric_filter$path_pattern,
-                         cube_paths_all$datacubepaths), ]
-  } else if (!is.null(mcfg$metric_filter$keep)) {
-    cube_paths_all[cube_paths_all$metric_names %in%
-                   mcfg$metric_filter$keep, ]
-  } else {
-    cube_paths_all
-  }
-
-  stopifnot(nrow(cube_paths) >= 1)
-
-  cat("Model:     ", model_label, "\n")
-  cat("Metrics retained after filter:\n")
-  print(unique(cube_paths$metric_names))
-  cat("Scenarios retained after filter:\n")
-  print(unique(cube_paths$scenario_names))
-
-  cat("Entities:\n");   print(cube_props@general$entity_names)
-  cat("Timesteps:\n");  print(cube_props@temporal$dates)
-  cat("EPSG:      ",    cube_props@spatial$epsg,       "\n")
-  cat("Resolution:",    cube_props@spatial$resolution, "\n")
-  cat("Extent:    ",    cube_props@spatial$extent,     "\n")
-
-  print(cube_paths)
-
-} else if (input_type == "geotiff_dir") {
-
-  # TEMPORARY (see TODO in section 0): metadata assembled from YAML +
-  # a sample GeoTIFF instead of ebv_properties()/ebv_datacubepaths().
-  # Entity order here MUST match the numbering of the entity_NN files on
-  # disk (entity_01, entity_02, ...) — i.e. entry order in the YAML's
-  # `entities:` map for this model is the contract, same as the original
-  # PLUM_Alexander notebook's hardcoded entity_names vector.
-  entity_names_geo <- names(mcfg$entities)
-
-  template_tif <- file.path(
-    tif_root, mcfg$scenarios[1], as.character(mcfg$years[1]),
-    sprintf(mcfg$entity_file_pattern, 1)
-  )
-  stopifnot(file.exists(template_tif))
-  geotiff_template <- rast(template_tif)
-
-  cat("Model:     ", model_label, "\n")
-  cat("Scenarios available:\n"); print(mcfg$scenarios)
-  cat("Years available:\n");     print(mcfg$years)
-  cat("Entities (file order):\n"); print(entity_names_geo)
-  cat("Spatial template:\n");    print(geotiff_template)
+# Apply per-model metric filter
+cube_paths <- if (!is.null(mcfg$metric_filter$path_pattern)) {
+  cube_paths_all[grepl(mcfg$metric_filter$path_pattern,
+                       cube_paths_all$datacubepaths), ]
+} else if (!is.null(mcfg$metric_filter$keep)) {
+  cube_paths_all[cube_paths_all$metric_names %in%
+                 mcfg$metric_filter$keep, ]
+} else {
+  cube_paths_all
 }
+
+stopifnot(nrow(cube_paths) >= 1)
+
+cat("Model:     ", model_label, "\n")
+cat("Metrics retained after filter:\n")
+print(unique(cube_paths$metric_names))
+cat("Scenarios retained after filter:\n")
+print(unique(cube_paths$scenario_names))
+
+cat("Entities:\n");   print(cube_props@general$entity_names)
+cat("Timesteps:\n");  print(cube_props@temporal$dates)
+cat("EPSG:      ",    cube_props@spatial$epsg,       "\n")
+cat("Resolution:",    cube_props@spatial$resolution, "\n")
+cat("Extent:    ",    cube_props@spatial$extent,     "\n")
+
+print(cube_paths)
 ```
 
 # 3. Category map for the active model
@@ -183,8 +121,7 @@ mapping from native classes to the six target classes (`Urban`,
 `Primary_vegetation`). Entities mapped to `~` (YAML null → R `NA`) are
 excluded from the habitat-area denominator before normalization
 (e.g. `Barren` in PLUM, since polar/desert/rock pixels would otherwise
-distort the regional richness estimates). This section is identical for
-both input backends — it only depends on `mcfg$entities`.
+distort the regional richness estimates).
 
 ```{r category-map}
 category_map <- unlist(mcfg$entities)
@@ -219,10 +156,10 @@ category_map
 # 4. Changes in area
 
 Both the percentage-point and km² outputs below come from a single
-fraction-read pass per entity — fractions are read once (section 4.1),
+`ebv_read()` pass per entity — fractions are read once (section 4.1),
 then reused to derive km² (section 4.2) by multiplying by a
-latitude-varying pixel-area raster. No entity is read from disk/cube more
-than once, regardless of backend.
+latitude-varying pixel-area raster. No entity is read from the cube
+more than once.
 
 ## 4.1 Reading fractions and percentage-point change per decade
 
@@ -233,83 +170,46 @@ pixel covered by a target class.
 ```{r}
 # Select scenario by NAME, not row index — robust across models with
 # different scenario counts/labels. Change scenario_choice to switch.
-# For ebvcube models this must match a value in cube_paths$scenario_names;
-# for geotiff_dir models it must match one of mcfg$scenarios.
-scenario_choice <- if (input_type == "ebvcube") "SSP2 RCP 6.0" else mcfg$scenarios[1]
+scenario_choice <- "SSP2 RCP 6.0"   # must match a value in cube_paths$scenario_names
+
+scenario_row <- cube_paths[cube_paths$scenario_names == scenario_choice, ]
+stopifnot(nrow(scenario_row) == 1)
+
+dc_path <- scenario_row$datacubepaths
+
+cat("Processing scenario:", scenario_row$scenario_names,
+    "| metric:", scenario_row$metric_names, "\n")
+
+# Metadata (shared by both 4.1 and 4.2)
+entity_names      <- cube_props@general$entity_names
+safe_entity_names <- gsub("[[:space:]/]+", "_", entity_names)
+timestep_labels_all <- format(as.Date(cube_props@temporal$dates), "%Y")
+n_entities        <- length(entity_names)
 
 t0_label <- "2020"
 t1_label <- "2050"
 
-if (input_type == "ebvcube") {
+t0_idx <- which(timestep_labels_all == t0_label)
+t1_idx <- which(timestep_labels_all == t1_label)
+keep_idx <- c(t0_idx, t1_idx)
+timestep_labels <- timestep_labels_all[keep_idx]
 
-  scenario_row <- cube_paths[cube_paths$scenario_names == scenario_choice, ]
-  stopifnot(nrow(scenario_row) == 1)
+# Read all original entities for t0 and t1 — single read, reused below
+lu_frac <- vector("list", n_entities)
+names(lu_frac) <- safe_entity_names
 
-  dc_path <- scenario_row$datacubepaths
-
-  cat("Processing scenario:", scenario_row$scenario_names,
-      "| metric:", scenario_row$metric_names, "\n")
-
-  # Metadata (shared by both 4.1 and 4.2)
-  entity_names        <- cube_props@general$entity_names
-  safe_entity_names   <- gsub("[[:space:]/]+", "_", entity_names)
-  timestep_labels_all <- format(as.Date(cube_props@temporal$dates), "%Y")
-  n_entities          <- length(entity_names)
-
-  t0_idx   <- which(timestep_labels_all == t0_label)
-  t1_idx   <- which(timestep_labels_all == t1_label)
-  keep_idx <- c(t0_idx, t1_idx)
-  timestep_labels <- timestep_labels_all[keep_idx]
-
-  # Read all original entities for t0 and t1 — single read, reused below
-  lu_frac <- vector("list", n_entities)
-  names(lu_frac) <- safe_entity_names
-
-  for (e in seq_len(n_entities)) {
-    cat(sprintf("[%d/%d] %s\n", e, n_entities, entity_names[e]))
-    frac <- ebv_read(
-      filepath     = cube_path,
-      datacubepath = dc_path,
-      entity       = e,
-      timestep     = keep_idx,
-      ignore_RAM   = TRUE,
-      verbose      = FALSE
-    )
-    names(frac) <- paste0(safe_entity_names[e], "_", timestep_labels)
-    lu_frac[[safe_entity_names[e]]] <- frac
-  }
-
-} else if (input_type == "geotiff_dir") {
-
-  # TEMPORARY (see TODO in section 0): reads per-entity GeoTIFFs directly
-  # instead of ebv_read(). Replace with an EBVcube read once available.
-  stopifnot(scenario_choice %in% mcfg$scenarios)
-  stopifnot(t0_label %in% as.character(mcfg$years))
-  stopifnot(t1_label %in% as.character(mcfg$years))
-
-  cat("Processing scenario:", scenario_choice, "\n")
-
-  entity_names      <- entity_names_geo
-  safe_entity_names <- gsub("[[:space:]/]+", "_", entity_names)
-  n_entities        <- length(entity_names)
-  timestep_labels   <- c(t0_label, t1_label)
-
-  lu_frac <- vector("list", n_entities)
-  names(lu_frac) <- safe_entity_names
-
-  for (e in seq_len(n_entities)) {
-    cat(sprintf("[%d/%d] %s\n", e, n_entities, entity_names[e]))
-
-    tif_t0 <- file.path(tif_root, scenario_choice, t0_label,
-                         sprintf(mcfg$entity_file_pattern, e))
-    tif_t1 <- file.path(tif_root, scenario_choice, t1_label,
-                         sprintf(mcfg$entity_file_pattern, e))
-    stopifnot(file.exists(tif_t0), file.exists(tif_t1))
-
-    frac <- c(rast(tif_t0), rast(tif_t1))
-    names(frac) <- paste0(safe_entity_names[e], "_", timestep_labels)
-    lu_frac[[safe_entity_names[e]]] <- frac
-  }
+for (e in seq_len(n_entities)) {
+  cat(sprintf("[%d/%d] %s\n", e, n_entities, entity_names[e]))
+  frac <- ebv_read(
+    filepath     = cube_path,
+    datacubepath = dc_path,
+    entity       = e,
+    timestep     = keep_idx,
+    ignore_RAM   = TRUE,
+    verbose      = FALSE
+  )
+  names(frac) <- paste0(safe_entity_names[e], "_", timestep_labels)
+  lu_frac[[safe_entity_names[e]]] <- frac
 }
 
 cat("Done.", model_label, "-", n_entities, "entities x 2 timesteps.\n")
@@ -365,23 +265,18 @@ plot(pct_change_stack, main = paste(model_label, names(pct_change_stack)))
 
 Fractions are converted to km² using a latitude-varying pixel-area
 raster (`terra::cellSize`), reusing the `lu_frac` already read in 4.1 —
-no second read pass, regardless of backend.
+no second `ebv_read()` pass.
 
 ```{r}
 # Pixel-area raster (latitude-varying), built once
-if (input_type == "ebvcube") {
-  pixel_area_km2 <- cellSize(
-    rast(
-      extent     = ext(cube_props@spatial$extent),
-      resolution = cube_props@spatial$resolution,
-      crs        = paste0("EPSG:", cube_props@spatial$epsg)
-    ),
-    unit = "km"
-  )
-} else if (input_type == "geotiff_dir") {
-  # TEMPORARY (see TODO in section 0)
-  pixel_area_km2 <- cellSize(geotiff_template, unit = "km")
-}
+pixel_area_km2 <- cellSize(
+  rast(
+    extent     = ext(cube_props@spatial$extent),
+    resolution = cube_props@spatial$resolution,
+    crs        = paste0("EPSG:", cube_props@spatial$epsg)
+  ),
+  unit = "km"
+)
 
 # Convert each already-read entity's fractions to km²
 lu_area_km2 <- lapply(lu_frac, function(r) r * pixel_area_km2)
@@ -607,3 +502,4 @@ breaks_dist
 # Re-check the distribution across these new breaks
 table(cut(pv_pct_df$pct, breaks = sort(unique(breaks_dist))))
 ```
+

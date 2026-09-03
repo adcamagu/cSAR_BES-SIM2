@@ -4,7 +4,7 @@
 # and declares which EBVcube metric to consume per model.
 
 version: "1.0"
-last_updated: "2026-06-19"
+last_updated: "2026-09-03"
 
 # -----------------------------------------------------------------------------
 # Paths (relative to the notebook in ../analyses/)
@@ -26,14 +26,24 @@ target_classes:
 # -----------------------------------------------------------------------------
 # Per-model contracts
 # Each block declares:
-#   file            - NetCDF path relative to paths$data_root
-#   metric_filter   - which EBVcube metric(s) to consume (null = all)
+#   input_type      - "ebvcube" (default, read via ebvcube::ebv_read()) or
+#                      "geotiff_dir" (read via terra::rast() from a folder of
+#                      per-scenario/per-year/per-entity GeoTIFFs)
+#   file            - [ebvcube only] NetCDF path relative to paths$data_root
+#   metric_filter   - [ebvcube only] which EBVcube metric(s) to consume (null = all)
+#   tif_root        - [geotiff_dir only] root folder of the coarsened GeoTIFFs,
+#                      relative to the notebook (../analyses/)
+#   scenarios       - [geotiff_dir only] scenario subfolder names under tif_root
+#   years           - [geotiff_dir only] year subfolder names under each scenario
+#   entity_file_pattern - [geotiff_dir only] sprintf() pattern for each entity's
+#                      filename within a scenario/year folder, e.g. "entity_%02d_p05.tif"
 #   entities        - entity -> target class mapping (~ = exclude from denominator)
 #   notes           - methodological decisions worth recording
 # -----------------------------------------------------------------------------
 models:
 
   PLUM:
+    input_type: ebvcube
     file: "land_use/PLUM/cubes/alexander_ecostr_id102_20260320.nc"
     metric_filter:
       path_pattern: "metric_3/ebv_cube$"
@@ -53,8 +63,30 @@ models:
       - "Photovoltaics (utility-scale PV) vs Agrivoltaics (dual-use) disambiguated by PLUM."
       - "Barren excluded from habitat-area denominator (NA-mapped)."
       - "Scenarios: NfN, NfNl, NaC, NfS, BAU. Timesteps: 2020, 2030, 2050, 2070."
+      - "id102, EBVcube, native 0.5deg. Distinct from PLUM_harmonised below (id99, HILDA+-harmonised GeoTIFFs) — both are valid, non-interchangeable representations of PLUM/Alexander land use, kept as separate model_key options."
+
+  PLUM_harmonised:
+    input_type: geotiff_dir
+    tif_root: "../preprocessed/PLUM_alexander/0.5deg"
+    scenarios: [NfN, NfNl, NaC, NfS, BAU]
+    years: [2020, 2030, 2050, 2070]
+    entity_file_pattern: "entity_%02d_p05.tif"
+    entities:
+      Urban: "Urban"
+      Cropland: "Cropland"
+      Pasture: "Pasture"
+      Forest_managed: "Secondary_vegetation"
+      Forest_unmanaged: "Primary_vegetation"
+      Grass_shrubland: "Primary_vegetation"
+      Other_land: "Primary_vegetation"
+    notes:
+      - "id99, HILDA+-harmonised entities, coarsened from the native 0.01deg binary cube to 0.5deg proportional-cover GeoTIFFs by the PLUM-Alexander coarsening notebook (Data_geo/land_use/PLUM/code/)."
+      - "Distinct from the 'PLUM' model above (id102, EBVcube, native 0.5deg, different 10-class category scheme) — both are valid, non-interchangeable representations of PLUM/Alexander land use."
+      - "Formerly handled by its own notebook, 5_land_use_changes_PLUM_Alexander.Rmd (now archived); folded into the agnostic notebook 2026-09-03."
+      - "TODO / TEMPORARY: read via geotiff_dir only because no EBV data cube exists yet for this HILDA+-harmonised dataset. All models should ultimately be read from a proper EBV data cube — once one is produced for this dataset, switch input_type to ebvcube here and retire the geotiff_dir code path in the agnostic notebook."
 
   GLOBIO:
+    input_type: ebvcube
     file: "land_use/GLOBIO/cubes/alkemade_ecostr_id103_20260216.nc"
     metric_filter: ~
     entities:
@@ -74,6 +106,7 @@ models:
       - "GLOBIO carries a single metric per scenario; no filter needed."
 
   ScenMIP:
+    input_type: ebvcube
     file: "land_use/ScenMIP7-LUH3/cubes/chini_ecostr_id105_20260325.nc"
     metric_filter: ~
     entities: {}
