@@ -79,6 +79,16 @@ R-packages:
 R-version:
 [1] "R version 4.4.3 (2025-02-28)"
 ```
+
+This repository uses [`renv`](https://rstudio.github.io/renv/) to pin exact package versions. After cloning, run:
+
+```r
+install.packages("renv")  # if not already installed
+renv::restore()
+```
+
+to install the exact versions recorded in `renv.lock`.
+
 ## Data availability
 
 Raw and intermediate geospatial data (land-use cubes, shapefiles) and rendered notebook outputs are not tracked in this repository due to size. Dataset availability is documented in the [BES-SIM2 repository](https://github.com/adcamagu/BES-SIM2). In the future they will be publicly accessible through the [GEO BON EBV Data Portal](https://portal.geobon.org/).
