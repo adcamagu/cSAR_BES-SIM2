@@ -30,6 +30,19 @@ significant change, so the before/after can be compared later.
 
 - `4_land_use_changes_agnostic_03092026.Rmd` — snapshot taken 2026-09-03,
   just before adding a second input backend (`geotiff_dir`) so the agnostic
-  notebook can also process `PLUM_Alexander` (id99, HILDA+-harmonised,
-  pre-coarsened 0.5° GeoTIFFs), previously handled by its own dedicated
-  notebook, `5_land_use_changes_PLUM_Alexander.Rmd`.
+  notebook can also process the id99 HILDA+-harmonised, pre-coarsened 0.5°
+  GeoTIFF dataset (`model_key <- "PLUM_harmonised"` in the YAML), previously
+  handled by its own dedicated notebook, `5_land_use_changes_PLUM_Alexander.Rmd`.
+
+## Retired step-05 notebook
+
+**`5_land_use_changes_PLUM_Alexander.Rmd`** (+ its `.nb.html` render) — the
+dedicated notebook that processed the id99 HILDA+-harmonised PLUM/Alexander
+GeoTIFFs (7-entity scheme: Urban, Cropland, Pasture, Forest managed, Forest
+unmanaged, Grass/shrubland, Other land). Its logic was folded into
+`4_land_use_changes_agnostic.Rmd` on 2026-09-03 as a new `geotiff_dir` input
+backend, selectable via `model_key <- "PLUM_harmonised"` — see the `TODO /
+TEMPORARY` notes in that notebook's section 0 and in
+`config/category_map.yaml` (this GeoTIFF backend is meant to be replaced by
+a proper EBVcube read once one exists for this dataset). Archived here once
+the merged version was confirmed to reproduce this notebook's output.
