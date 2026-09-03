@@ -12,14 +12,13 @@ library(tidyterra)
 library(rnaturalearth)
 library(sf)
 library(stringr)
-
-setwd(dirname(rstudioapi::getSourceEditorContext()$path))
+library(here)
 ```
 
 ```{r}
 # List all raster files in the project folder and subfolders
 file_paths <- list.files(
-  path = "../BES_results/",
+  path = here::here("BES_results"),
   pattern = "\\.tif$",
   recursive = TRUE,
   full.names = TRUE,

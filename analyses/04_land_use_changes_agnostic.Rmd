@@ -14,13 +14,7 @@ library(rworldmap)
 library(ggplot2)
 library(stringr)
 library(yaml)
-
-# Anchor wd to the notebook location (interactive use only;
-# knitr sets root.dir to the document directory automatically)
-if (requireNamespace("rstudioapi", quietly = TRUE) &&
-    rstudioapi::isAvailable()) {
-  setwd(dirname(rstudioapi::getSourceEditorContext()$path))
-}
+library(here)
 ```
 
 # 0. Configuration
@@ -76,7 +70,7 @@ search under `data_root` either way (using the pre-simplified version
 produced previously with `simplifyGeom(tolerance = 0.05)`).
 
 ```{r paths}
-root_LU_cubes <- cfg$paths$data_root
+root_LU_cubes <- here::here(cfg$paths$data_root)
 
 if (input_type == "ebvcube") {
 
@@ -86,7 +80,7 @@ if (input_type == "ebvcube") {
 } else if (input_type == "geotiff_dir") {
 
   # TEMPORARY (see TODO in section 0): GeoTIFF path, not an EBVcube read.
-  tif_root <- mcfg$tif_root
+  tif_root <- here::here(mcfg$tif_root)
   stopifnot(dir.exists(tif_root))
 
 } else {

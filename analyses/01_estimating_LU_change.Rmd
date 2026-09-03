@@ -13,9 +13,7 @@ library(sf)
 library(rworldmap)
 library(ggplot2)
 library(stringr)
-
-#setting the working directory
-setwd(dirname(rstudioapi::getSourceEditorContext()$path))
+library(here)
 ```
 
 # 1. Paths
@@ -25,13 +23,13 @@ Here we call the EBVcube file with GLOBIO.
 For the purpose of this exploratory analysis I need to simplify the ipbes vector file, so that it runs faster. To provide a fast analysis, I have set a tolerance parameter of `0.05` meaning that withing a 0.05 degree grid, every vertice would be flattened in a single straight line. Given that the rasters we are working with are 0.5, this does not create any practical problem
 
 ```{r}
-root_LU_cubes <- "../Data_geo/"
+root_LU_cubes <- here::here("Data_geo")
 
 # EBVcube NetCDFs
 dc <- list(
-  globio_lu_05 = "../Data_geo/land_use/GLOBIO/cubes/alkemade_ecostr_id103_20260216.nc",
-  plum_lu_05   = "../Data_geo/land_use/PLUM/cubes/alexander_ecostr_id102_20260320.nc",
-  scenmip_0.25 = "../Data_geo/land_use/ScenMIP7-LUH3/cubes/chini_ecostr_id105_20260325.nc"
+  globio_lu_05 = here::here("Data_geo", "land_use", "GLOBIO", "cubes", "alkemade_ecostr_id103_20260216.nc"),
+  plum_lu_05   = here::here("Data_geo", "land_use", "PLUM", "cubes", "alexander_ecostr_id102_20260320.nc"),
+  scenmip_0.25 = here::here("Data_geo", "land_use", "ScenMIP7-LUH3", "cubes", "chini_ecostr_id105_20260325.nc")
 )
 
 # IPBES regions shapefile — used in regional aggregation (next step)
@@ -178,7 +176,7 @@ print(new_categories)
 Affinities have been taken from the supplementary material on the paper described in the heading.
 
 ```{r}
- group_affinity_22 <- read.csv("../Data_geo/affinities/affinities_martins.csv")
+ group_affinity_22 <- read.csv(here::here("Data_geo", "affinities", "affinities_martins.csv"))
 ```
 
 The table created by Lilly has a mistake and it is related to the fact that the columns h are in reality sigmas and need to be converted. Also in the mean_h table shared by HP and made by Alexandra, there are two things to note:
@@ -508,16 +506,16 @@ Following this convention to save the name = deltas\_<scenario><LU projection><d
 ```{r}
 #convention to save the name = areas_<scenario><LU projection><date>.csv  /  rdelta_<scenario><LU projection><date>.csv
 
-write.csv(globio_zonal_totals_wide, "../BES_results/results_biodiversity/cSAR_iDiv/areas_SSP2RCP6_GLOBIO_2020-2050_23062026.csv")
-write.csv(rdelta_zonal_df,      "../BES_results/results_biodiversity/cSAR_iDiv/rdelta_SSP2RCP6_GLOBIO_2020-2050_23062026.csv")
+write.csv(globio_zonal_totals_wide, here::here("BES_results", "results_biodiversity", "cSAR_iDiv", "areas_SSP2RCP6_GLOBIO_2020-2050_23062026.csv"))
+write.csv(rdelta_zonal_df,      here::here("BES_results", "results_biodiversity", "cSAR_iDiv", "rdelta_SSP2RCP6_GLOBIO_2020-2050_23062026.csv"))
 ```
 
 ## 8.2 Results as rasters (local estimates)
 
 ```{r}
 #for forest species
-writeRaster(rdelta_rasters$Forest, "../BES_results/results_biodiversity/cSAR_iDiv/rasters/ssdelta_forest_SSP2RCP6_GLOBIO_2020-2050.tif", datatype= "FLT4S", NAflag=-9999, overwrite=TRUE)
+writeRaster(rdelta_rasters$Forest, here::here("BES_results", "results_biodiversity", "cSAR_iDiv", "rasters", "ssdelta_forest_SSP2RCP6_GLOBIO_2020-2050.tif"), datatype= "FLT4S", NAflag=-9999, overwrite=TRUE)
 
 # for non-forest species
-writeRaster(rdelta_rasters$Non_Forest, "../BES_results/results_biodiversity/cSAR_iDiv/rasters/ssdelta_nonforest_SSP2RCP6_GLOBIO_2020-2050.tif", datatype= "FLT4S", NAflag=-9999, overwrite=TRUE)
+writeRaster(rdelta_rasters$Non_Forest, here::here("BES_results", "results_biodiversity", "cSAR_iDiv", "rasters", "ssdelta_nonforest_SSP2RCP6_GLOBIO_2020-2050.tif"), datatype= "FLT4S", NAflag=-9999, overwrite=TRUE)
 ```

@@ -7,20 +7,17 @@ output: html_notebook
 
 This notebook contains a few lines of code to explore the data tables on the supplementary materials provided by Martins et al (2022) (unpublished). These files where send by Henrique Pereira to Andrés Marmol and Lilly Schwietzer by email on the 26 of May 2026.
 
-The raw files are found in the following path '/Users/andresmarmolguijarro/Documents/idiv/BES-SIM 2 local/cSAR-iDiv r-package/calibration tables'
+The raw files were originally provided at a path local to Andrés' machine, outside this repository. A copy now lives in this repo at `Data_geo/calibration/` (copied 2026-09-03) so the notebook is self-contained and reproducible for other collaborators.
 
 # code
 
 ```{r}
 library(tidyverse)
+library(here)
 ```
 
 ```{r}
-setwd('/Users/andresmarmolguijarro/Documents/idiv/BES-SIM 2 local/cSAR-iDiv r-package/calibration tables')
-```
-
-```{r}
-generalist <- read.csv('/Users/andresmarmolguijarro/Documents/idiv/BES-SIM 2 local/cSAR-iDiv r-package/calibration tables/generalist_sp_sigma_list.csv')
+generalist <- read.csv(here::here("Data_geo", "calibration", "generalist_sp_sigma_list.csv"))
 ```
 
 ```{r}
@@ -37,7 +34,7 @@ sum_gen <- generalist %>%
 ```
 
 ```{r}
-forest <- read.csv('forest_sp_sigma_list.csv')
+forest <- read.csv(here::here("Data_geo", "calibration", "forest_sp_sigma_list.csv"))
 ```
 
 ```{r}

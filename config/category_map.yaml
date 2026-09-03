@@ -10,7 +10,7 @@ last_updated: "2026-09-03"
 # Paths (relative to the notebook in ../analyses/)
 # -----------------------------------------------------------------------------
 paths:
-  data_root: "../Data_geo"
+  data_root: "Data_geo"  # resolved via here::here() in the notebook, project-root-relative
 
 # -----------------------------------------------------------------------------
 # Target schema: the six classes used by the cSAR affinity matrix
@@ -67,7 +67,7 @@ models:
 
   PLUM_harmonised:
     input_type: geotiff_dir
-    tif_root: "../preprocessed/PLUM_alexander/0.5deg"
+    tif_root: "preprocessed/PLUM_alexander/0.5deg"  # resolved via here::here()
     scenarios: [NfN, NfNl, NaC, NfS, BAU]
     years: [2020, 2030, 2050, 2070]
     entity_file_pattern: "entity_%02d_p05.tif"

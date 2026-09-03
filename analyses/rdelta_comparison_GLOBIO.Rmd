@@ -33,7 +33,7 @@ library(patchwork)
 # 1 · Load and prepare data
 
 ```{r load-data}
-rdelta_dir <- "/Volumes/AM_SSD/BES-SIM2_cSAR/cSAR_BES-SIM_2/BES_results/results_biodiversity/cSAR_iDiv/"
+rdelta_dir <- here::here("BES_results", "results_biodiversity", "cSAR_iDiv")
 
 rdelta_paths <- list.files(
   rdelta_dir,

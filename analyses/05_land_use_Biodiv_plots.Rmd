@@ -5,9 +5,10 @@ output: html_document
 
 ```{r}
 library(tidyverse)
+library(here)
 
 # ── 1. Load and combine ────────────────────────────────────────────────────────
-areas_dir <- "/Volumes/AM_SSD/BES-SIM2_cSAR/cSAR_BES-SIM_2/BES_results/results_biodiversity/cSAR_iDiv/"
+areas_dir <- here::here("BES_results", "results_biodiversity", "cSAR_iDiv")
 
 areas_paths <- list.files(areas_dir, pattern = "^areas_.*\\.csv$", full.names = TRUE)
 
