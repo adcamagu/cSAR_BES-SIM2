@@ -4,7 +4,6 @@ output: html_notebook
 editor_options: 
   markdown: 
     wrap: 72
----§
 ---
 
 ```{r setup, message=FALSE}
@@ -628,16 +627,22 @@ table(cut(pv_pct_df$pct, breaks = sort(unique(breaks_dist))))
 
 # 5. Calling affinities calibration table from Martins et al (2022) cSAR—BES-SIM 1.
 
-Affinities have been taken from the supplementary material on the paper described in the heading.
+Affinities have been taken from the supplementary material on the paper
+described in the heading.
 
 ```{r}
  group_affinity_22 <- read.csv(here::here("Data_geo", "affinities", "affinities_martins.csv"))
 ```
 
-The table created by Lilly has a mistake and it is related to the fact that the columns h are in reality sigmas and need to be converted. Also in the mean_h table shared by HP and made by Alexandra, there are two things to note:
+The table created by Lilly has a mistake and it is related to the fact
+that the columns h are in reality sigmas and need to be converted. Also
+in the mean_h table shared by HP and made by Alexandra, there are two
+things to note:
 
 1)  they use a z= 0.186
-2)  the h values for the non-forest species are normalised to the max value (e.g. h_pasture = 2.67) as affinities shouldn't be greater than 1.
+2)  the h values for the non-forest species are normalised to the max
+    value (e.g. h_pasture = 2.67) as affinities shouldn't be greater
+    than 1.
 
 The following chunk corrects this:
 
@@ -670,7 +675,8 @@ group_affinity_22 <- group_affinity_22 %>%
   select(-all_of(h_raw_cols), -h_max)
 ```
 
-Extracting h-values for the taxon groups and z-values (NOTE: z-values have been defined as 0.2 based on literature)
+Extracting h-values for the taxon groups and z-values (NOTE: z-values
+have been defined as 0.2 based on literature)
 
 ```{r}
 get_h <- function(taxon) {
@@ -705,17 +711,34 @@ t1_label <- "2050"
 
 # 6. Relative change in species richness at the local scale (gridcell)
 
-Martins have defined the Relative change in species richness for each functional (or taxonomic) group $i$ between two timesteps $t$ ($t_0$ as the beginning and $t_1$ as the end of the period) as:
+Martins have defined the Relative change in species richness for each
+functional (or taxonomic) group $i$ between two timesteps $t$ ($t_0$ as
+the beginning and $t_1$ as the end of the period) as:
 
-$$R\Delta_{i,u} = \left( \frac{\sum_j^n h_{ij} · A_{j,u,t_1} - \sum_j^n h_{ij} · A_{j,u,t_0}}{\sum_j^n h_{ij} · A_{j,u,t_0}} \right)^z$$ where $A_{j,u,t}$ is the area of each land use type $j$, in each sampling unit $u$ at time $t$, derived from the recategorised rasters in the steps before, $h_{ij}$ is the affinity of the species group $i$ to the land use type $j$, $n$ is the number of land use types, and $z$ is the constant indicating the rate at which species richness increases with area.
+$$R\Delta_{i,u} = \left( \frac{\sum_j^n h_{ij} · A_{j,u,t_1} - \sum_j^n h_{ij} · A_{j,u,t_0}}{\sum_j^n h_{ij} · A_{j,u,t_0}} \right)^z$$
+where $A_{j,u,t}$ is the area of each land use type $j$, in each
+sampling unit $u$ at time $t$, derived from the recategorised rasters in
+the steps before, $h_{ij}$ is the affinity of the species group $i$ to
+the land use type $j$, $n$ is the number of land use types, and $z$ is
+the constant indicating the rate at which species richness increases
+with area.
 
-**CORRECTION:** After reviewing the outputs which where strangely huge with HP, we came back to the formula detailed above and detected a mistake. The z-value should be applied to each species richness $(\sum_j^n h_{ij} · A_{j,u,t})$ at the different timesteps, so that the formula is written as:
+**CORRECTION:** After reviewing the outputs which where strangely huge
+with HP, we came back to the formula detailed above and detected a
+mistake. The z-value should be applied to each species richness
+$(\sum_j^n h_{ij} · A_{j,u,t})$ at the different timesteps, so that the
+formula is written as:
 
-$$R\Delta_{i,u} = \frac{(\sum_j^n h_{ij} · A_{j,u,t_1})^z - (\sum_j^n h_{ij} · A_{j,u,t_0})^z}{(\sum_j^n h_{ij} · A_{j,u,t_0})^z} = \left( \frac{\sum_j^n h_{ij} · A_{j,u,t_1}}{\sum_j^n h_{ij} · A_{j,u,t_0}}\right)^z - 1$$ $$R\Delta_{i,u} = \left( \frac{\sum_j^n h_{ij} · A_{j,u,t_1}}{\sum_j^n h_{ij} · A_{j,u,t_0}}\right)^z - 1$$
+$$R\Delta_{i,u} = \frac{(\sum_j^n h_{ij} · A_{j,u,t_1})^z - (\sum_j^n h_{ij} · A_{j,u,t_0})^z}{(\sum_j^n h_{ij} · A_{j,u,t_0})^z} = \left( \frac{\sum_j^n h_{ij} · A_{j,u,t_1}}{\sum_j^n h_{ij} · A_{j,u,t_0}}\right)^z - 1$$
+$$R\Delta_{i,u} = \left( \frac{\sum_j^n h_{ij} · A_{j,u,t_1}}{\sum_j^n h_{ij} · A_{j,u,t_0}}\right)^z - 1$$
 
 ## 6.1 Defining the Sums of species per pixel for all land uses at the different timesepts.
 
-In the first step the function weighted_sum is defined to estimate $\sum_j^n h_{ij} · A_{j,u,t}$ for each timestep. As we are working directly with the extracted from the GLOBIO EBVcube, this section is done directly using the rasters. Note that `weighted_sum` refers to $\sum_j^n h_{ij} · A_{j,u,t}$
+In the first step the function weighted_sum is defined to estimate
+$\sum_j^n h_{ij} · A_{j,u,t}$ for each timestep. As we are working
+directly with the extracted from the GLOBIO EBVcube, this section is
+done directly using the rasters. Note that `weighted_sum` refers to
+$\sum_j^n h_{ij} · A_{j,u,t}$
 
 ```{r}
 weighted_sum <- function(h_vec, timestep_label) {
