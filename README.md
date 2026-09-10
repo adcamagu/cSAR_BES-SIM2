@@ -6,7 +6,7 @@ Andrés Mármol Guijarro, Emmanuel Oceguera & Henrique Pereira.
 Author list is not definitive yet, and inclusions may occur over the development of the repository.
 
 ## Description
-This repository containg data and code fore the modelling of land-use impacts on biodiversity for the BES-SIM2 project, using the cSAR-iDiv model to estimate relative change in Species Richness (SS) change under different NFF land-use scenarios (GLOBIO, PLUM and MAgPIE), compared across and IPBES region/subregion classifications.
+This repository containg data and code fore the modelling of land-use impacts on biodiversity for the BES-SIM2 project, using the cSAR-iDiv model to estimate relative change in Species Richness (SS) change under different NFF land-use scenarios (GLOBIO, PLUM and MAgPIE (or "ScenMIP7-LUH3")), compared across and IPBES region/subregion classifications.
 
 
 ## Version history
